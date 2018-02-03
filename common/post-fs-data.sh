@@ -84,7 +84,7 @@ main () {
                                LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
                                UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
                                if [ "$(sed -n "/^libraries {/,/^}/ {/$LIB.so/p}" $FILE)" ] && [ "$(sed -n "/^effects {/,/^}/ {/uuid $UUID/p}" $FILE)" ] && [ "$(find $MODDIR/$MODNAME/system -type f -name "$LIB.so")" ] && [ "$AUDMOD" != "ainur_sauron" ] && [ "$AUDMOD" != "Udb_Remover" ]; then
-                                 LIBDIR="$(dirname $(find $MODDIR/$MODNAME/system -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MODDIR/$MODNAME||" -e "s|/system/vendor|/vendor|")"
+                                 LIBDIR="$(dirname $(find $MODDIR/$MODNAME/system -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MODDIR/$MODNAME||" -e "s|/system/vendor|/vendor|" -e "s|/lib64/|/lib/|")"
                                  . $MODPATH/.scripts/$AUDMOD
                                fi
                              done;;

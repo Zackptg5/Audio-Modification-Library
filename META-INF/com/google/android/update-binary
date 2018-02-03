@@ -244,7 +244,7 @@ installmod() {
                                LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
                                UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
                                if [ "$(sed -n "/^libraries {/,/^}/ {/$LIB.so/p}" $FILE)" ] && [ "$(sed -n "/^effects {/,/^}/ {/uuid $UUID/p}" $FILE)" ] && [ "$(find $MOD -type f -name "$LIB.so")" ] && [ "$AUDMOD" != "ainur_sauron" ] && [ "$AUDMOD" != "Udb_Remover" ]; then
-                                 LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|")"
+                                 LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64/|/lib/|")"
                                  . $INSTALLER/mods/$AUDMOD
                                  PRINTED="${PRINTED} $UUID"
                                fi
