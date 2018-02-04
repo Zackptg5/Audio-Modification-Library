@@ -21,21 +21,19 @@ case $PRINTED in
   *9d4921da-8225-4f29-aefa-6e6f69726861*) ;;
   *) ui_print "    Found Dolby Atmos! Patching...";;
 esac
-patch_cfgs $MODPATH/$NAME dax dax $LIBDIR/libswdax.so 9d4921da-8225-4f29-aefa-6e6f69726861
-patch_cfgs $MODPATH/$NAME outsp dax
-#libhwdax~a0c30891-8246-4aef-b8ad-696f6e726861
-case $PRINTED in 
-  *a0c30891-8246-4aef-b8ad-696f6e726861*) ;;
-  *) ui_print "    Found Axon 7 Dolby Atmos! Patching...";;
-esac
-patch_cfgs $MODPATH/$NAME libraryonly proxy $LIBDIR/libeffectproxy.so
-patch_cfgs $MODPATH/$NAME libraryonly dax_hw $LIBDIR/libhwdax.so
-patch_cfgs $MODPATH/$NAME libraryonly dax_sw $LIBDIR/libswdax.so
-patch_cfgs $MODPATH/$NAME outsp dax
-case $FILE in
-  *.conf) [ ! "$(sed -n "/^effects {/,/^}/ {/^  dax {/,/^  }/ {/uuid a0c30891-8246-4aef-b8ad-696f6e726861/p}}" $MODPATH/$NAME)" ] && sed -i "s/^effects {/effects {\n  dax {\n    library proxy\n    uuid 9d4921da-8225-4f29-aefa-6e6f69726861\n\n    libsw {\n      library dax_sw\n      uuid 6ab06da4-c516-4611-8166-6168726e6f69\n    }\n\n    libhw {\n      library dax_hw\n      uuid a0c30891-8246-4aef-b8ad-696f6e726861\n    }\n  }/g" $MODPATH/$NAME;;
-  *) [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/<effectProxy name=\"proxy\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">/,/<\/effectProxy>/ {/uuid=\"a0c30891-8246-4aef-b8ad-696f6e726861\"/}}" $MODPATH/$NAME)" ] && sed -i -e "/<effects>/ a\        <effectProxy name=\"proxy\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">" -e "/<effects>/ a\            <libsw library=\"dax_sw\" uuid=\"6ab06da4-c516-4611-8166-6168726e6f69\"\/>" -e "/<effects>/ a\            <libhw library=\"dax_hw\" uuid=\"a0c30891-8246-4aef-b8ad-696f6e726861\"\/>" -e "/<effects>/ a\        <\/effectProxy>" $MODPATH/$NAME;;
-esac
+if [ "$(find $MOD -type f -name "libhwdax.so")" ]; then
+  patch_cfgs $MODPATH/$NAME libraryonly proxy $LIBDIR/libeffectproxy.so
+  patch_cfgs $MODPATH/$NAME libraryonly dax_hw $LIBDIR/libhwdax.so
+  patch_cfgs $MODPATH/$NAME libraryonly dax_sw $LIBDIR/libswdax.so
+  patch_cfgs $MODPATH/$NAME outsp dax
+  case $FILE in
+    *.conf) [ ! "$(sed -n "/^effects {/,/^}/ {/^  dax {/,/^  }/ {/uuid a0c30891-8246-4aef-b8ad-696f6e726861/p}}" $MODPATH/$NAME)" ] && sed -i "s/^effects {/effects {\n  dax {\n    library proxy\n    uuid 9d4921da-8225-4f29-aefa-6e6f69726861\n\n    libsw {\n      library dax_sw\n      uuid 6ab06da4-c516-4611-8166-6168726e6f69\n    }\n\n    libhw {\n      library dax_hw\n      uuid a0c30891-8246-4aef-b8ad-696f6e726861\n    }\n  }/g" $MODPATH/$NAME;;
+    *) [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/<effectProxy name=\"proxy\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">/,/<\/effectProxy>/ {/uuid=\"a0c30891-8246-4aef-b8ad-696f6e726861\"/}}" $MODPATH/$NAME)" ] && sed -i -e "/<effects>/ a\        <effectProxy name=\"proxy\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">" -e "/<effects>/ a\            <libsw library=\"dax_sw\" uuid=\"6ab06da4-c516-4611-8166-6168726e6f69\"\/>" -e "/<effects>/ a\            <libhw library=\"dax_hw\" uuid=\"a0c30891-8246-4aef-b8ad-696f6e726861\"\/>" -e "/<effects>/ a\        <\/effectProxy>" $MODPATH/$NAME;;
+  esac
+else
+  patch_cfgs $MODPATH/$NAME dax dax $LIBDIR/libswdax.so 9d4921da-8225-4f29-aefa-6e6f69726861
+  patch_cfgs $MODPATH/$NAME outsp dax
+fi
 #libswdap~9d4921da-8225-4f29-aefa-39537a04bcaa
 case $PRINTED in 
   *9d4921da-8225-4f29-aefa-39537a04bcaa*) ;;
