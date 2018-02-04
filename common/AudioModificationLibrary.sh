@@ -62,7 +62,6 @@ case $PRINTED in
   *) ui_print "    Found Dolby Digital Plus! Patching...";;
 esac
 patch_cfgs $MODPATH/$NAME ds dsplus $LIBDIR/libdseffect.so 9d4921da-8225-4f29-aefa-39537a04bcaa
-patch_cfgs $MODPATH/$NAME outsp dsplus
 #libswvlldp~3783c334-d3a0-4d13-874f-0032e5fb80e2
 case $PRINTED in 
   *3783c334-d3a0-4d13-874f-0032e5fb80e2*) ;;
