@@ -33,13 +33,13 @@ patch_cfgs() {
               [ ! "$(sed -n "/^effects {/,/^}/ {/^ *$3 {/,/}/p}" $1)" ] && sed -i "s|^effects {|effects {\n  $3 {\n    library $2\n    uuid $5\n  }|" $1
             fi;;
     *) if [ "$2" == "libraryonly" ]; then
-         [ ! "$(sed -n "/<libraries>/,/<\/libraries>/ {/^ *<library name=\"$3\" path=\"$(basename $4)\"\/>/p}" $1)" ] && sed -i "/<libraries> a\        <library name=\"$3\" path=\"$(basename $4)\"\/>" $1
+         [ ! "$(sed -n "/<libraries>/,/<\/libraries>/ {/^ *<library name=\"$3\" path=\"$(basename $4)\"\/>/p}" $1)" ] && sed -i "/<libraries>/ a\        <library name=\"$3\" path=\"$(basename $4)\"\/>" $1
        elif [ "$2" == "effectonly" ]; then
          [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$4\" library=\"$3\" uuid=\"$5\"\/>/p}" $1)" ] && sed -i "/<effects>/ a\        <effect name=\"$4\" library=\"$(basename $3)\" uuid=\"$5\"\/>" $1
        elif [ "$2" == "outsp" ]; then
          $OREONEW && [ ! "$(sed -n "/<postprocess>/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/^ *<apply effect=\"$3\"\/>/p}}" $1)" ] && sed -i "/<postprocess>/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ s/<stream type=\"music\">/<stream type=\"music\">\n            <apply effect=\"$3\"\/>/}" $1
        else
-         [ ! "$(sed -n "/<libraries>/,/<\/libraries>/ {/^ *<library name=\"$2\" path=\"$(basename $4)\"\/>/p}" $1)" ] && sed -i "/<libraries> a\        <library name=\"$2\" path=\"$(basename $4)\"\/>" $1
+         [ ! "$(sed -n "/<libraries>/,/<\/libraries>/ {/^ *<library name=\"$2\" path=\"$(basename $4)\"\/>/p}" $1)" ] && sed -i "/<libraries>/ a\        <library name=\"$2\" path=\"$(basename $4)\"\/>" $1
          [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$3\" library=\"$2\" uuid=\"$5\"\/>/p}" $1)" ] && sed -i "/<effects>/ a\        <effect name=\"$3\" library=\"$(basename $2)\" uuid=\"$5\"\/>" $1
        fi;;
   esac
@@ -81,11 +81,21 @@ main () {
           NAME=$(echo "$FILE" | sed "s|$MOD|system|")
           case $FILE in
             *audio_effects*) for AUDMOD in $(ls $MODPATH/.scripts); do
+                               [ "$AUDMOD" == "ainur_sauron" -o "$AUDMOD" == "Udb_Remover" ] && continue
                                LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
                                UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
-                               if [ "$(sed -n "/^libraries {/,/^}/ {/$LIB.so/p}" $FILE)" ] && [ "$(sed -n "/^effects {/,/^}/ {/uuid $UUID/p}" $FILE)" ] && [ "$(find $MODDIR/$MODNAME/system -type f -name "$LIB.so")" ] && [ "$AUDMOD" != "ainur_sauron" ] && [ "$AUDMOD" != "Udb_Remover" ]; then
+                               if [ "$(sed -n "/^libraries {/,/^}/ {/$LIB.so/p}" $FILE)" ] && [ "$(sed -n "/^effects {/,/^}/ {/uuid $UUID/p}" $FILE)" ] && [ "$(find $MODDIR/$MODNAME/system -type f -name "$LIB.so")" ]; then
                                  LIBDIR="$(dirname $(find $MODDIR/$MODNAME/system -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MODDIR/$MODNAME||" -e "s|/system/vendor|/vendor|" -e "s|/lib64/|/lib/|")"
                                  . $MODPATH/.scripts/$AUDMOD
+                               fi
+                             done;;
+            *audio_effects*.xml) for AUDMOD in $(ls $INSTALLER/mods); do
+                               [ "$AUDMOD" == "ainur_sauron" -o "$AUDMOD" == "Udb_Remover" ] && continue
+                               LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
+                               UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")                               
+                               if [ "$(sed -n "/<libraries>/,/<\/libraries>/ {/path=\"$LIB.so\"/p}" $FILE)" ] && [ "$(sed -n "/<effects>/,/<\/effects>/ {/uuid=\"$UUID\"/p}" $FILE)" ] && [ "$(find $MOD -type f -name "$LIB.so")" ]; then
+                                 LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64/|/lib/|")"
+                                 . $INSTALLER/mods/$AUDMOD
                                fi
                              done;;
           esac
@@ -94,6 +104,7 @@ main () {
       fi
       if $LAST && [ -f $(dirname $MOD)/system.prop ]; then
         while read PROP; do
+          [ ! "$PROP" ] && break
           TPROP=$(echo "$PROP" | sed -r "s/(.*)=.*/\1/")
           if [ ! "$(grep "$TPROP" $PROPFILE)" ]; then
             echo "$PROP" >> $PROPFILE
@@ -131,15 +142,18 @@ if $REMPATCH; then
       NAME=$(echo "$FILE" | sed -e "s|$ORIGDIR||" -e "s|/system/||")
       cp_mv -c $FILE $MODPATH/system/$NAME
     done
+    if [ -f $ORIGDIR/system/etc/audio_effects.conf ] && [ ! -f $ORIGDIR/vendor/etc/audio_effects.conf ] && [ ! -f $ORIGDIR/vendor/etc/audio_effects.xml ]; then
+      cp_mv -c $ORIGDIR/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf
+    fi
   else
     FILES="$(find -L $ORIGDIR/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_policy*.conf" -o -name "*audio_policy*.xml" -o -name "*mixer_paths*.xml")"
     for FILE in ${FILES}; do
       NAME=$(echo "$FILE" | sed "s|$ORIGDIR||")
       cp_mv -c $FILE $MODPATH$NAME
     done
-  fi
-  if [ -f $ORIGDIR/system/etc/audio_effects.conf ] && [ ! -f $ORIGDIR/system/vendor/etc/audio_effects.conf ]; then
-    cp_mv -c $ORIGDIR/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf
+    if [ -f $ORIGDIR/system/etc/audio_effects.conf ] && [ ! -f $ORIGDIR/system/vendor/etc/audio_effects.conf ] && [ ! -f $ORIGDIR/system/vendor/etc/audio_effects.xml ]; then
+      cp_mv -c $ORIGDIR/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf
+    fi
   fi
   for FILE in $MODPATH/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf; do
     if [ -f $FILE ] && [ ! "$(grep '^ *# *music_helper {' $FILE)" ] && [ "$(grep '^ *music_helper {' $FILE)" ]; then
@@ -147,8 +161,8 @@ if $REMPATCH; then
     fi
   done
   for FILE in $MODPATH/system/etc/audio_effects.xml $MODPATH/system/vendor/etc/audio_effects.xml; do
-    if [ -f $FILE ] && [ ! "$(grep '^ *<\!--<stream type=\"music\">' $FILE)" ] && [ "$(grep '^ *<stream type=\"music\">' $FILE)" ]; then
-      sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ s/<stream type=\"music\">/<\!--<stream type=\"music\">/; s/<\/stream>/<\/stream>-->/}" $FILE
+    if [ -f $FILE ] && [ ! "$(grep '^ *<\!--<effect name=\"music_helper\"*' $FILE)" ] && [ "$(grep '^ *<effect name=\"music_helper\"*' $FILE)" ]; then
+      sed -i "s/^\( *\)<effect name=\"music_helper\"\(.*\)/\1<\!--<effect name=\"music_helper\"\2-->/" $FILE      
     fi
   done
   main "$COREPATH/aml/mods/*/system"
