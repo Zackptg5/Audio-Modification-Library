@@ -4,6 +4,7 @@ AudModLib is a compatibility framework that allows the seamless integration of m
 ## Change Log
 ### v1.2 - 2.x.2018
 * Fixed janky bootmode stuff
+* Fix uninstall/upgrade when a supported audio mod has just been upgraded in bootmode
 
 ### v1.1 - 2.6.2018
 * Fixes for xml files
