@@ -336,7 +336,7 @@ uninstallmod() {
   [ -f $COREPATH/aml/mods/modlist ] && {
   if [ -s $COREPATH/aml/mods/modlist ]; then
     while read LINE; do
-      [ -d $MODDIR/$LINE ] && { for FILE in $(find $COREPATH/aml/mods/$LINE -type f); do
+      [ -d $MODDIR/$LINE -a ! -f "$MODDIR/$LINE/update" ] && { for FILE in $(find $COREPATH/aml/mods/$LINE -type f); do
         NAME=$(echo "$FILE" | sed "s|$COREPATH/aml/mods/||")
         cp_mv -m $FILE $MODDIR/$NAME
       done; }
