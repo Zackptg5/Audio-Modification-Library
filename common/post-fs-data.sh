@@ -9,7 +9,6 @@ MODPATH=${0%/*}
 MODDIR=$(dirname $MODPATH)
 COREPATH=$(dirname $MODPATH)/.core
 ORIGDIR=/sbin/.core/mirror
-PROPFILE=$MODPATH/system.prop
 REMPATCH=false
 NEWPATCH=false
 OREONEW=<OREONEW>
@@ -106,17 +105,17 @@ main () {
         while read PROP; do
           [ ! "$PROP" ] && break
           TPROP=$(echo "$PROP" | sed -r "s/(.*)=.*/\1/")
-          if [ ! "$(grep "$TPROP" $PROPFILE)" ]; then
-            echo "$PROP" >> $PROPFILE
-          elif [ "$(grep "^$TPROP" $PROPFILE)" ] && [ ! "$(grep "^$PROP" $PROPFILE)" ]; then
-            sed -i "s|^$TPROP|^#$TPROP|" $PROPFILE
-            echo "#$PROP" >> $PROPFILE
+          if [ ! "$(grep "$TPROP" $MODPATH/system.prop)" ]; then
+            echo "$PROP" >> $MODPATH/system.prop
+          elif [ "$(grep "^$TPROP" $MODPATH/system.prop)" ] && [ ! "$(grep "^$PROP" $MODPATH/system.prop)" ]; then
+            sed -i "s|^$TPROP|^#$TPROP|" $MODPATH/system.prop
+            echo "#$PROP" >> $MODPATH/system.prop
           fi
         done < $(dirname $MOD)/system.prop
         cp_mv -m $(dirname $MOD)/system.prop $COREPATH/aml/mods/$MODNAME/system.prop
       fi
     done
-    $LAST && [ -s $PROPFILE ] || rm -f $PROPFILE
+    $LAST && [ -s $MODPATH/system.prop ] || rm -f $MODPATH/system.prop
     NUM=$((NUM+1))
   done
 }

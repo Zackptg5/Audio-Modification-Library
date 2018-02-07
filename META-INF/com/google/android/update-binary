@@ -69,8 +69,6 @@ MIN_VER=`grep_prop minMagisk $INSTALLER/module.prop`
 [ ! -z $MAGISK_VER_CODE -a $MAGISK_VER_CODE -ge $MIN_VER ] || require_new_magisk
 MODID=`grep_prop id $INSTALLER/module.prop`
 MODPATH=$MOUNTPATH/$MODID
-# Use .core for storing backup files
-if $BOOTMODE; then COREPATH=/sbin/.core/img/.core; else COREPATH=$MOUNTPATH/.core; fi
 
 # Print mod name
 print_modname
@@ -153,8 +151,7 @@ patch_cfgs() {
 installmod() {
   ui_print "- Installing Audio Modification Library"  
   # Create mod paths
-  rm -rf $MODPATH 2>/dev/null
-  mktouch $COREPATH/aml/mods/modlist
+  mktouch $MOUNTPATH/.core/aml/mods/modlist
   mktouch $MODPATH/system.prop
 
   ui_print "   Searching for supported audio mods..."
@@ -214,14 +211,14 @@ installmod() {
   # Search magisk img for any audio mods and move relevant files (confs/pols/mixs/props) to non-mounting directory
   # Patch common aml files for each audio mod found
   PRINTED=""
-  MODS="$(find $MODDIR/*/system -maxdepth 0 -type d)"
+  if $BOOTMODE; then MODS="$(find /sbin/.core/img/*/system $MOUNTPATH/*/system -maxdepth 0 -type d)"; else MODS="$(find $MOUNTPATH/*/system -maxdepth 0 -type d)"; fi
   if [ "$MODS" ]; then
     for MOD in ${MODS}; do
       [ "$MOD" == "$MODPATH/system" ] && continue
       FILES=$(find $MOD -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_policy*.conf" -o -name "*audio_policy*.xml" -o -name "*mixer_paths*.xml")
       [ -z "$FILES" ] && continue
       MODNAME=$(basename $(dirname $MOD))
-      echo "$MODNAME" >> $COREPATH/aml/mods/modlist
+      echo "$MODNAME" >> $MOUNTPATH/.core/aml/mods/modlist
       # Ainur sauron needs some custom logic due to its dynamic patching (not all installs are the same)
       if [ "$MODNAME" == "ainur_sauron" ]; then
         # Use aml script included with sauron
@@ -230,12 +227,12 @@ installmod() {
         ui_print "    Found Ainur Sauron! Patching..."
         . $MODPATH/.scripts/ainur_sauron.sh
         for FILE in ${FILES}; do
-          cp_mv -m $FILE $COREPATH/aml/mods/$MODNAME/$(echo "$FILE" | sed "s|$MOD|system|")
+          cp_mv -m $FILE $MOUNTPATH/.core/aml/mods/$MODNAME/$(echo "$FILE" | sed "s|$MOD|system|")
         done
       # Universal deep_buffer remover doesn't install anything new so only detection for it is the modname - ahrion's ubdr
       elif [ "$MODNAME" == "Udb_Remover" ]; then
         for FILE in ${FILES}; do
-          cp_mv -m $FILE $COREPATH/aml/mods/$MODNAME/$(echo "$FILE" | sed "s|$MOD|system|")
+          cp_mv -m $FILE $MOUNTPATH/.core/aml/mods/$MODNAME/$(echo "$FILE" | sed "s|$MOD|system|")
         done
         . $INSTALLER/mods/$MODNAME.sh
         PRINTED="${PRINTED} Udb_Remover"
@@ -266,7 +263,7 @@ installmod() {
                                fi
                              done;;
           esac
-          cp_mv -m $FILE $COREPATH/aml/mods/$MODNAME/$NAME
+          cp_mv -m $FILE $MOUNTPATH/.core/aml/mods/$MODNAME/$NAME
         done
       fi
       # Import all props from audio mods into a common aml one
@@ -276,11 +273,11 @@ installmod() {
         while read PROP; do
           [ ! "$PROP" ] && break
           TPROP=$(echo "$PROP" | sed -r "s/(.*)=.*/\1/")
-          if [ ! "$(grep "$TPROP" $PROPFILE)" ]; then
-            echo "$PROP" >> $PROPFILE
-          elif [ "$(grep "^$TPROP" $PROPFILE)" ] && [ ! "$(grep "^$PROP" $PROPFILE)" ]; then
-            sed -i "s|^$TPROP|^#$TPROP|" $PROPFILE
-            echo "#$PROP" >> $PROPFILE
+          if [ ! "$(grep "$TPROP" $MODPATH/system.prop)" ]; then
+            echo "$PROP" >> $MODPATH/system.prop
+          elif [ "$(grep "^$TPROP" $MODPATH/system.prop)" ] && [ ! "$(grep "^$PROP" $MODPATH/system.prop)" ]; then
+            sed -i "s|^$TPROP|^#$TPROP|" $MODPATH/system.prop
+            echo "#$PROP" >> $MODPATH/system.prop
             $CONFPRINT || { ui_print " "
             ui_print "   ! Conflicting props found !"
             ui_print "   ! Conflicting props will be commented out !"
@@ -289,7 +286,7 @@ installmod() {
             CONFPRINT=true
           fi
         done < $(dirname $MOD)/system.prop
-        cp_mv -m $(dirname $MOD)/system.prop $COREPATH/aml/mods/$MODNAME/system.prop
+        cp_mv -m $(dirname $MOD)/system.prop $MOUNTPATH/.core/aml/mods/$MODNAME/system.prop
       fi
     done
   else
@@ -305,7 +302,7 @@ installmod() {
   $AUTOMOUNT && touch $MODPATH/auto_mount
 
   # prop files
-  [ -s $PROPFILE ] || rm -f $PROPFILE
+  [ -s $MODPATH/system.prop ] || rm -f $MODPATH/system.prop
   
   # Module info
   cp -af $INSTALLER/module.prop $MODPATH/module.prop
@@ -317,7 +314,7 @@ installmod() {
 
   # post-fs-data mode scripts
   $POSTFSDATA && cp -af $INSTALLER/common/post-fs-data.sh $MODPATH/post-fs-data.sh
-  cp_mv -c $INSTALLER/common/aml.sh $COREPATH/post-fs-data.d/aml.sh 0755
+  cp_mv -c $INSTALLER/common/aml.sh $MOUNTPATH/.core/post-fs-data.d/aml.sh 0755
 
   # service mode scripts
   $LATESTARTSERVICE && cp -af $INSTALLER/common/service.sh $MODPATH/service.sh
@@ -328,6 +325,14 @@ installmod() {
 uninstallmod() {
   ui_print "- Uninstalling Audio Modification Library"
   # Restore all relevant audio files to their respective mod directories (if the mod still exists)
+  COREPATH=$MOUNTPATH/.core
+  if $BOOTMODE; then
+    [ -f /sbin/.core/img/.core/aml/mods/modlist ] && COREPATH=/sbin/.core/img/.core
+    MODDIR=/sbin/.core/img
+  else
+    MODDIR=$MOUNTPATH
+  fi
+  
   [ -f $COREPATH/aml/mods/modlist ] && {
   if [ -s $COREPATH/aml/mods/modlist ]; then
     while read LINE; do
@@ -337,8 +342,8 @@ uninstallmod() {
       done; }
     done < $COREPATH/aml/mods/modlist
   fi; }
-  rm -f $COREPATH/post-fs-data.d/aml.sh
-  rm -rf $COREPATH/aml $MODPATH /sbin/.core/img/$MODID
+  rm -f $COREPATH/post-fs-data.d/aml.sh $MOUNTPATH/.core/post-fs-data.d/aml.sh
+  rm -rf $COREPATH/aml $MOUNTPATH/.core/aml $MODPATH /sbin/.core/img/$MODID
 }
 
 ##########################################################################################
@@ -354,16 +359,13 @@ mount_magisk_img
 # Detect if aml is already installed and set vars
 if $BOOTMODE; then
   ORIGDIR=/sbin/.core/mirror
-  MODDIR=/sbin/.core/img
   MOD_VER=/sbin/.core/img/$MODID/module.prop
   OLD_AML_VER="/sbin/.core/img/audmodlib/module.prop"
 else
   ORIGDIR=""
-  MODDIR=$MOUNTPATH
   MOD_VER=$MODPATH/module.prop
   OLD_AML_VER="$MOUNTPATH/audmodlib/module.prop"
 fi
-PROPFILE=$MODPATH/system.prop
 
 # Remove old aml & mods
 [ -f "$OLD_AML_VER" ] && remove_old_aml
