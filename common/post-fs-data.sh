@@ -171,7 +171,7 @@ if $REMPATCH; then
   for FILE in $MODPATH/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf; do
     if [ -f $FILE ]; then
       [ ! "$(grep '^ *# *music_helper {' $FILE)" -a "$(grep '^ *music_helper {' $FILE)" ] && sed -i "/effects {/,/^}/ {/music_helper {/,/}/ s/^/#/g}" $FILE
-      [ ! "$(grep '^ *# *sa3d {' $FILE)" -a "$(grep '^ *sa3d {' $FILE)" ] && sed -i "/effects {/,/^}/ {/sa3d {/,/  }/ s/^/#/g}" $FILE
+      [ ! "$(grep '^ *# *sa3d {' $FILE)" -a "$(grep '^ *sa3d {' $FILE)" ] && sed -i "/effects {/,/^}/ {/sa3d {/,/^  }/ s/^/#/g}" $FILE
     fi
   done
   for FILE in $MODPATH/system/etc/audio_effects.xml $MODPATH/system/vendor/etc/audio_effects.xml; do
