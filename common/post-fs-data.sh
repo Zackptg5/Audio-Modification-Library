@@ -26,7 +26,7 @@ patch_cfgs() {
             elif [ "$2" == "effectonly" ]; then
               [ ! "$(sed -n "/^effects {/,/^}/ {/^ *$4 {/,/}/p}" $1)" ] && sed -i "s|^effects {|effects {\n  $4 {\n    library $3\n    uuid $5\n  }|" $1
             elif [ "$2" == "outsp" ]; then              
-              if ! $OREONEW || [ "$1" != "/system/vendor/etc/audio_effects.conf" ]; then continue; fi
+              [ "$OREONEW" == "false" -o "$1" != "$MODPATH/system/vendor/etc/audio_effects.conf" ] && continue
               if [ ! "$(sed -n "/^output_session_processing {/,/^}/p" $1)" ]; then
                 echo -e "output_session_processing {\n    music {\n        $3 {\n        }\n    }\n}" >> $1
               elif [ ! "$(sed -n "/^output_session_processing {/,/^}/ {/music {/,/^    }/p}" $1)" ]; then
@@ -43,7 +43,7 @@ patch_cfgs() {
        elif [ "$2" == "effectonly" ]; then
          [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$4\" library=\"$3\" uuid=\"$5\"\/>/p}" $1)" ] && sed -i "/<effects>/ a\        <effect name=\"$4\" library=\"$(basename $3)\" uuid=\"$5\"\/>" $1
        elif [ "$2" == "outsp" ]; then
-         if ! $OREONEW || [ "$1" != "/system/vendor/etc/audio_effects.xml" ]; then continue; fi
+         [ "$OREONEW" == "false" -o "$1" != "$MODPATH/system/vendor/etc/audio_effects.xml" ] && continue
          if [ ! "$(sed -n "/<postprocess>/,/<\/postprocess>/p" $1)" ]; then     
            sed -i "/<\/audio_effects_conf>/i\    <postprocess>\n       <stream type=\"music\">\n            <apply effect=\"$3\"\/>\n        <\/stream>\n    <\/postprocess>" $1
          elif [ ! "$(sed -n "/<postprocess>/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/p}" $1)" ]; then     
@@ -169,13 +169,15 @@ if $REMPATCH; then
     fi
   fi
   for FILE in $MODPATH/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf; do
-    if [ -f $FILE ] && [ ! "$(grep '^ *# *music_helper {' $FILE)" ] && [ "$(grep '^ *music_helper {' $FILE)" ]; then
-      sed -i "/effects {/,/^}/ {/music_helper {/,/}/ s/^/#/g}" $FILE
+    if [ -f $FILE ]; then
+      [ ! "$(grep '^ *# *music_helper {' $FILE)" -a "$(grep '^ *music_helper {' $FILE)" ] && sed -i "/effects {/,/^}/ {/music_helper {/,/}/ s/^/#/g}" $FILE
+      [ ! "$(grep '^ *# *sa3d {' $FILE)" -a "$(grep '^ *sa3d {' $FILE)" ] && sed -i "/effects {/,/^}/ {/sa3d {/,/}/ s/^/#/g}" $FILE
     fi
   done
   for FILE in $MODPATH/system/etc/audio_effects.xml $MODPATH/system/vendor/etc/audio_effects.xml; do
-    if [ -f $FILE ] && [ ! "$(grep '^ *<\!--<effect name=\"music_helper\"*' $FILE)" ] && [ "$(grep '^ *<effect name=\"music_helper\"*' $FILE)" ]; then
-      sed -i "s/^\( *\)<effect name=\"music_helper\"\(.*\)/\1<\!--<effect name=\"music_helper\"\2-->/" $FILE      
+    if [ -f $FILE ]; then
+      [ ! "$(grep '^ *<\!--<effect name=\"music_helper\"*' $FILE)" -a "$(grep '^ *<effect name=\"music_helper\"*' $FILE)" ] && sed -i "s/^\( *\)<effect name=\"music_helper\"\(.*\)/\1<\!--<effect name=\"music_helper\"\2-->/" $FILE
+      [ ! "$(grep '^ *<\!--<effect name=\"sa3d\"*' $FILE)" -a "$(grep '^ *<effect name=\"sa3d\"*' $FILE)" ] && sed -i "s/^\( *\)<effect name=\"sa3d\"\(.*\)/\1<\!--<effect name=\"sa3d\"\2-->/" $FILE
     fi
   done
   main "$COREPATH/aml/mods/*/system"
