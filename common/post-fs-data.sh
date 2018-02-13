@@ -26,13 +26,14 @@ patch_cfgs() {
             elif [ "$2" == "effectonly" ]; then
               [ ! "$(sed -n "/^effects {/,/^}/ {/^ *$4 {/,/}/p}" $1)" ] && sed -i "s|^effects {|effects {\n  $4 {\n    library $3\n    uuid $5\n  }|" $1
             elif [ "$2" == "outsp" ]; then              
-              [ "$OREONEW" == "false" -o "$1" != "$MODPATH/system/vendor/etc/audio_effects.conf" ] && continue
-              if [ ! "$(sed -n "/^output_session_processing {/,/^}/p" $1)" ]; then
-                echo -e "output_session_processing {\n    music {\n        $3 {\n        }\n    }\n}" >> $1
-              elif [ ! "$(sed -n "/^output_session_processing {/,/^}/ {/music {/,/^    }/p}" $1)" ]; then
-                sed -i "/output_session_processing {/,/^}/ s/output_session_processing {/output_session_processing {\n    music {\n        $3 {\n        }\n    }/" $1
-              elif [ ! "$(sed -n "/^output_session_processing {/,/^}/ {/music {/,/^    }/ {/$3 {/,/}/p}}" $1)" ]; then
-                sed -i "/output_session_processing {/,/^}/ {/music {/,/^    }/ s/music {/music {\n        $3 {\n        }/}" $1
+              if $OREONEW && [ "$1" == "$MODPATH/system/vendor/etc/audio_effects.conf" ]; then
+                if [ ! "$(sed -n "/^output_session_processing {/,/^}/p" $1)" ]; then
+                  echo -e "output_session_processing {\n    music {\n        $3 {\n        }\n    }\n}" >> $1
+                elif [ ! "$(sed -n "/^output_session_processing {/,/^}/ {/music {/,/^    }/p}" $1)" ]; then
+                  sed -i "/output_session_processing {/,/^}/ s/output_session_processing {/output_session_processing {\n    music {\n        $3 {\n        }\n    }/" $1
+                elif [ ! "$(sed -n "/^output_session_processing {/,/^}/ {/music {/,/^    }/ {/$3 {/,/}/p}}" $1)" ]; then
+                  sed -i "/output_session_processing {/,/^}/ {/music {/,/^    }/ s/music {/music {\n        $3 {\n        }/}" $1
+                fi
               fi
             else
               [ ! "$(sed -n "/^libraries {/,/^}/ {/^ *$2 {/,/}/p}" $1)" ] && sed -i "s|^libraries {|libraries {\n  $2 {\n    path $4\n  }|" $1
@@ -43,13 +44,14 @@ patch_cfgs() {
        elif [ "$2" == "effectonly" ]; then
          [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$4\" library=\"$3\" uuid=\"$5\"\/>/p}" $1)" ] && sed -i "/<effects>/ a\        <effect name=\"$4\" library=\"$(basename $3)\" uuid=\"$5\"\/>" $1
        elif [ "$2" == "outsp" ]; then
-         [ "$OREONEW" == "false" -o "$1" != "$MODPATH/system/vendor/etc/audio_effects.xml" ] && continue
-         if [ ! "$(sed -n "/<postprocess>/,/<\/postprocess>/p" $1)" ]; then     
-           sed -i "/<\/audio_effects_conf>/i\    <postprocess>\n       <stream type=\"music\">\n            <apply effect=\"$3\"\/>\n        <\/stream>\n    <\/postprocess>" $1
-         elif [ ! "$(sed -n "/<postprocess>/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/p}" $1)" ]; then     
-           sed -i "/<postprocess>/,/<\/postprocess>/ s/    <postprocess>/    <postprocess>\n        <stream type=\"music\">\n            <apply effect=\"$3\"\/>\n        <\/stream>/" $1
-         elif [ ! "$(sed -n "/<postprocess>/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/^ *<apply effect=\"$3\"\/>/p}}" $1 )" ]; then
-           sed -i "/<postprocess>/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ s/<stream type=\"music\">/<stream type=\"music\">\n            <apply effect=\"$3\"\/>/}" $1
+         if $OREONEW && [ "$1" == "$MODPATH/system/vendor/etc/audio_effects.xml" ]; then
+           if [ ! "$(sed -n "/<postprocess>/,/<\/postprocess>/p" $1)" ]; then     
+             sed -i "/<\/audio_effects_conf>/i\    <postprocess>\n       <stream type=\"music\">\n            <apply effect=\"$3\"\/>\n        <\/stream>\n    <\/postprocess>" $1
+           elif [ ! "$(sed -n "/<postprocess>/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/p}" $1)" ]; then     
+             sed -i "/<postprocess>/,/<\/postprocess>/ s/    <postprocess>/    <postprocess>\n        <stream type=\"music\">\n            <apply effect=\"$3\"\/>\n        <\/stream>/" $1
+           elif [ ! "$(sed -n "/<postprocess>/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/^ *<apply effect=\"$3\"\/>/p}}" $1)" ]; then
+             sed -i "/<postprocess>/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ s/<stream type=\"music\">/<stream type=\"music\">\n            <apply effect=\"$3\"\/>/}" $1
+           fi
          fi
        else
          [ ! "$(sed -n "/<libraries>/,/<\/libraries>/ {/^ *<library name=\"$2\" path=\"$(basename $4)\"\/>/p}" $1)" ] && sed -i "/<libraries>/ a\        <library name=\"$2\" path=\"$(basename $4)\"\/>" $1
