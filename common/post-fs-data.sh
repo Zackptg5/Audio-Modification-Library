@@ -157,18 +157,12 @@ if $REMPATCH; then
       NAME=$(echo "$FILE" | sed -e "s|$ORIGDIR||" -e "s|/system/||")
       cp_mv -c $FILE $MODPATH/system/$NAME
     done
-    if [ -f $ORIGDIR/system/etc/audio_effects.conf ] && [ ! -f $ORIGDIR/vendor/etc/audio_effects.conf ] && [ ! -f $ORIGDIR/vendor/etc/audio_effects.xml ]; then
-      cp_mv -c $ORIGDIR/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf
-    fi
   else
     FILES="$(find -L $ORIGDIR/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_policy*.conf" -o -name "*audio_policy*.xml" -o -name "*mixer_paths*.xml")"
     for FILE in ${FILES}; do
       NAME=$(echo "$FILE" | sed "s|$ORIGDIR||")
       cp_mv -c $FILE $MODPATH$NAME
     done
-    if [ -f $ORIGDIR/system/etc/audio_effects.conf ] && [ ! -f $ORIGDIR/system/vendor/etc/audio_effects.conf ] && [ ! -f $ORIGDIR/system/vendor/etc/audio_effects.xml ]; then
-      cp_mv -c $ORIGDIR/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf
-    fi
   fi
   for FILE in $MODPATH/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf; do
     if [ -f $FILE ]; then

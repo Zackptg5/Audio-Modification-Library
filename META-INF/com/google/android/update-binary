@@ -197,10 +197,6 @@ installmod() {
       if $BOOTMODE; then NAME=$(echo "$FILE" | sed -e "s|$ORIGDIR||" -e "s|/system/||"); else NAME=$(echo "$FILE" | sed "s|/system/||"); fi
       cp_mv -c $FILE $MODPATH/system/$NAME
     done
-    # Create vendor audio_effects.conf if missing
-    if [ -f $ORIGDIR/system/etc/audio_effects.conf ] && [ ! -f $ORIGDIR/vendor/etc/audio_effects.conf ] && [ ! -f $ORIGDIR/vendor/etc/audio_effects.xml ]; then
-      cp_mv -c $ORIGDIR/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf
-    fi
   else
     # Original logic
     FILES="$(find -L $ORIGDIR/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_policy*.conf" -o -name "*audio_policy*.xml" -o -name "*mixer_paths*.xml")"
@@ -208,10 +204,6 @@ installmod() {
       if $BOOTMODE; then NAME=$(echo "$FILE" | sed "s|$ORIGDIR||"); else NAME=$FILE; fi
       cp_mv -c $FILE $MODPATH$NAME
     done
-    # Create vendor audio_effects.conf if missing
-    if [ -f $ORIGDIR/system/etc/audio_effects.conf ] && [ ! -f $ORIGDIR/system/vendor/etc/audio_effects.conf ] && [ ! -f $ORIGDIR/system/vendor/etc/audio_effects.xml ]; then
-      cp_mv -c $ORIGDIR/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf
-    fi
   fi
   # Comment out music_helper and sa3d (samsung equivalent)
   for FILE in $MODPATH/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf; do
