@@ -280,6 +280,8 @@ installmod() {
       # Check for and comment out conflicting props between the mods as well
       if [ -f $(dirname $MOD)/system.prop ]; then
         CONFPRINT=false
+        sed -i "/^$/d" $(dirname $MOD)/system.prop
+        [ "$(tail -1 $(dirname $MOD)/system.prop)" ] && echo "" >> $(dirname $MOD)/system.prop
         while read PROP; do
           [ ! "$PROP" ] && break
           TPROP=$(echo "$PROP" | sed -r "s/(.*)=.*/\1/")
@@ -328,6 +330,11 @@ installmod() {
 
   # service mode scripts
   $LATESTARTSERVICE && cp -af $INSTALLER/common/service.sh $MODPATH/service.sh
+  
+  # ADD BLANK LINE TO END OF ALL PROP/SCRIPT FILES IF NOT ALREADY PRESENT
+  for FILE in $MODPATH/*.sh $MODPATH/*.prop $MOUNTPATH/.core/post-fs-data.d/aml.sh; do
+    [ "$(tail -1 $FILE)" ] && echo "" >> $FILE
+  done
 
   ui_print "- Setting permissions"
   set_permissions

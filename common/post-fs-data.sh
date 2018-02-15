@@ -118,6 +118,8 @@ main () {
         done
       fi
       if $LAST && [ -f $(dirname $MOD)/system.prop ]; then
+        sed -i "/^$/d" $(dirname $MOD)/system.prop
+        [ "$(tail -1 $(dirname $MOD)/system.prop)" ] && echo "" >> $(dirname $MOD)/system.prop
         while read PROP; do
           [ ! "$PROP" ] && break
           TPROP=$(echo "$PROP" | sed -r "s/(.*)=.*/\1/")
@@ -131,7 +133,12 @@ main () {
         cp_mv -m $(dirname $MOD)/system.prop $COREPATH/aml/mods/$MODNAME/system.prop
       fi
     done
-    $LAST && [ -s $MODPATH/system.prop ] || rm -f $MODPATH/system.prop
+    if $LAST; then
+      [ -s $MODPATH/system.prop ] || rm -f $MODPATH/system.prop
+      for FILE in $MODPATH/*.sh $MODPATH/*.prop; do
+        [ "$(tail -1 $FILE)" ] && echo "" >> $FILE
+      done
+    fi
     NUM=$((NUM+1))
   done
 }
