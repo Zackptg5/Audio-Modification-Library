@@ -173,14 +173,14 @@ if $REMPATCH; then
   fi
   for FILE in $MODPATH/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf; do
     if [ -f $FILE ]; then
-      [ "$(grep '^ *music_helper {' $FILE)" ] && sed -i "/effects {/,/^}/ {/music_helper {/,/}/d}" $FILE
-      [ "$(grep '^ *sa3d {' $FILE)" ] && sed -i "/effects {/,/^}/ {/sa3d {/,/^  }/d}" $FILE
+      sed -i "/effects {/,/^}/ {/music_helper {/,/}/d}" $FILE
+      sed -i "/effects {/,/^}/ {/sa3d {/,/^  }/d}" $FILE
     fi
   done
   for FILE in $MODPATH/system/etc/audio_effects.xml $MODPATH/system/vendor/etc/audio_effects.xml; do
     if [ -f $FILE ]; then
-      [ "$(grep '^ *<apply effect=\"music_helper\"\/>' $FILE)" ] && sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"music_helper\"\/>/d}}" $FILE
-      [ "$(grep '^ *<apply effect=\"sa3d\"\/>' $FILE)" ] && sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"sa3d\"\/>/d}}" $FILE
+      sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"music_helper\"\/>/d}}" $FILE
+      sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"sa3d\"\/>/d}}" $FILE
     fi
   done
   main "$COREPATH/aml/mods/*/system"
