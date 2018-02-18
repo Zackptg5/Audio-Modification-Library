@@ -190,18 +190,16 @@ installmod() {
   done < $INSTALLER/common/AudioModificationLibrary.sh
   
   # Copy original files to MODPATH
-  # Workaround for magisk mirror bug where mirror/system/vendor is symlinked to mounted /vendor instead of mirror/vendor on devices with a separate vendor partition
-  if $BOOTMODE && [ -L /system/vendor ]; then 
-    FILES="$(find $ORIGDIR/system $ORIGDIR/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_policy*.conf" -o -name "*audio_policy*.xml" -o -name "*mixer_paths*.xml")"
+  if $BOOTMODE; then
+    FILES="$(find /sbin/.core/mirror/system /sbin/.core/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_policy*.conf" -o -name "*audio_policy*.xml" -o -name "*mixer_paths*.xml")"
     for FILE in ${FILES}; do
-      if $BOOTMODE; then NAME=$(echo "$FILE" | sed -e "s|$ORIGDIR||" -e "s|/system/||"); else NAME=$(echo "$FILE" | sed "s|/system/||"); fi
+      NAME=$(echo "$FILE" | sed -e "s|/sbin/.core/mirror||" -e "s|/system/||")
       cp_mv -c $FILE $MODPATH/system/$NAME
     done
   else
-    # Original logic
-    FILES="$(find -L $ORIGDIR/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_policy*.conf" -o -name "*audio_policy*.xml" -o -name "*mixer_paths*.xml")"
+    FILES="$(find -L /system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_policy*.conf" -o -name "*audio_policy*.xml" -o -name "*mixer_paths*.xml")"
     for FILE in ${FILES}; do
-      if $BOOTMODE; then NAME=$(echo "$FILE" | sed "s|$ORIGDIR||"); else NAME=$FILE; fi
+      NAME=$FILE
       cp_mv -c $FILE $MODPATH$NAME
     done
   fi
@@ -375,11 +373,9 @@ mount_magisk_img
 
 # Detect if aml is already installed and set vars
 if $BOOTMODE; then
-  ORIGDIR=/sbin/.core/mirror
   MOD_VER=/sbin/.core/img/$MODID/module.prop
   OLD_AML_VER="/sbin/.core/img/audmodlib/module.prop"
 else
-  ORIGDIR=""
   MOD_VER=$MODPATH/module.prop
   OLD_AML_VER="$MOUNTPATH/audmodlib/module.prop"
 fi
