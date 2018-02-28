@@ -231,7 +231,7 @@ installmod() {
       if [ "$MODNAME" == "ainur_sauron" ]; then
         # Use aml script included with sauron
         cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/ainur_sauron.sh
-        LIBDIR="$(dirname $(find $MOD -type f -name "lib*.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64/|/lib/|")"
+        LIBDIR="$(dirname $(find $MOD -type f -name "lib*.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
         ui_print "    Found Ainur Sauron! Patching..."
         . $MODPATH/.scripts/ainur_sauron.sh
         for FILE in ${FILES}; do
@@ -254,7 +254,7 @@ installmod() {
                                LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
                                UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
                                if [ "$(sed -n "/^libraries {/,/^}/ {/$LIB.so/p}" $FILE)" ] && [ "$(sed -n "/^effects {/,/^}/ {/uuid $UUID/p}" $FILE)" ] && [ "$(find $MOD -type f -name "$LIB.so")" ]; then
-                                 LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64/|/lib/|")"
+                                 LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
                                  . $INSTALLER/mods/$AUDMOD
                                  PRINTED="${PRINTED} $UUID"
                                fi
@@ -264,7 +264,7 @@ installmod() {
                                LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
                                UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")                               
                                if [ "$(sed -n "/<libraries>/,/<\/libraries>/ {/path=\"$LIB.so\"/p}" $FILE)" ] && [ "$(sed -n "/<effects>/,/<\/effects>/ {/uuid=\"$UUID\"/p}" $FILE)" ] && [ "$(find $MOD -type f -name "$LIB.so")" ]; then
-                                 LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64/|/lib/|")"
+                                 LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
                                  . $INSTALLER/mods/$AUDMOD
                                  PRINTED="${PRINTED} $UUID"
                                fi
