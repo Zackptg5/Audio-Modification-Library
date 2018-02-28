@@ -80,7 +80,7 @@ main () {
       $LAST && [ ! "$(grep "$MODNAME" $COREPATH/aml/mods/modlist)" ] && echo "$MODNAME" >> $COREPATH/aml/mods/modlist
       if [ "$MODNAME" == "ainur_sauron" ]; then
         cp_mv -c $MODDIR/$MODNAME/.aml.sh $MODPATH/.scripts/ainur_sauron.sh
-        LIBDIR="$(dirname $(find $MODDIR/$MODNAME/system -type f -name "lib*.so" | head -n 1) | sed -e "s|$MODDIR/$MODNAME||" -e "s|/system/vendor|/vendor|")"
+        LIBDIR="$(dirname $(find $MODDIR/$MODNAME/system -type f -name "lib*.so" | head -n 1) | sed -e "s|$MODDIR/$MODNAME||" -e "s|/system/vendor|/vendor|" -e "s|/lib64/|/lib/|")"
         . $MODPATH/.scripts/$MODNAME.sh
         for FILE in ${FILES}; do
           $LAST && cp_mv -m $FILE $COREPATH/aml/mods/$MODNAME/$(echo "$FILE" | sed "s|$MOD|system|")

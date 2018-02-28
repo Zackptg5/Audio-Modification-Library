@@ -231,7 +231,7 @@ installmod() {
       if [ "$MODNAME" == "ainur_sauron" ]; then
         # Use aml script included with sauron
         cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/ainur_sauron.sh
-        LIBDIR="$(dirname $(find $MOD -type f -name "lib*.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|")"
+        LIBDIR="$(dirname $(find $MOD -type f -name "lib*.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64/|/lib/|")"
         ui_print "    Found Ainur Sauron! Patching..."
         . $MODPATH/.scripts/ainur_sauron.sh
         for FILE in ${FILES}; do
