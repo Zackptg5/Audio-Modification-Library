@@ -67,14 +67,20 @@ patch_cfgs $MODPATH/$NAME outsp atmos
 #libicepower~f1c02420-777f-11e3-981f-0800200c9a66
 case $PRINTED in
   *f1c02420-777f-11e3-981f-0800200c9a66*) ;;
-  *) ui_print "    Found Bang&Olufsen ICEPower! Patching...";;
+  *) if [ "$MODNAME" == "ainur_bang-olufsen" ]; then
+       ui_print "    Found Bang&Olufsen ICEPower! Patching..."
+     else
+       ui_print "    Found IceWizard! Patching..."
+     fi;;
 esac
 patch_cfgs $MODPATH/$NAME libraryonly icepower $LIBDIR/libicepower.so
 patch_cfgs $MODPATH/$NAME effectonly icepower icepower_algo f1c02420-777f-11e3-981f-0800200c9a66
-patch_cfgs $MODPATH/$NAME effectonly icepower icepower_test e5456320-5391-11e3-8f96-0800200c9a66
-patch_cfgs $MODPATH/$NAME effectonly icepower icepower_load bf51a790-512b-11e3-8f96-0800200c9a66
-patch_cfgs $MODPATH/$NAME effectonly icepower icepower_null 63509430-52aa-11e3-8f96-0800200c9a66
-patch_cfgs $MODPATH/$NAME effectonly icepower icepower_eq 50dbef80-4ad4-11e3-8f96-0800200c9a66
+if [ "$MODNAME" == "ainur_bang-olufsen" ]; then
+  patch_cfgs $MODPATH/$NAME effectonly icepower icepower_test e5456320-5391-11e3-8f96-0800200c9a66
+  patch_cfgs $MODPATH/$NAME effectonly icepower icepower_load bf51a790-512b-11e3-8f96-0800200c9a66
+  patch_cfgs $MODPATH/$NAME effectonly icepower icepower_null 63509430-52aa-11e3-8f96-0800200c9a66
+  patch_cfgs $MODPATH/$NAME effectonly icepower icepower_eq 50dbef80-4ad4-11e3-8f96-0800200c9a66
+fi
 #libarkamys~17852d50-161e-11e2-892e-0800200c9a66
 case $PRINTED in 
   *17852d50-161e-11e2-892e-0800200c9a66*) ;;
