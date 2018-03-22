@@ -97,7 +97,7 @@ patch_cfgs $MODPATH/$NAME dirac dirac $LIBDIR/libdirac.so 4c6383e0-ff7d-11e0-b6d
 patch_cfgs $MODPATH/$NAME effectonly dirac dirac_controller b437f4de-da28-449b-9673-667f8b9643fe
 patch_cfgs $MODPATH/$NAME effectonly dirac dirac_music b437f4de-da28-449b-9673-667f8b964304
 #libdirac~e069d9e0-8329-11df-9168-0002a5d5c51b
-case $PRINTED in 
+case $PRINTED in
   *e069d9e0-8329-11df-9168-0002a5d5c51b*) ;;
   *) ui_print "    Found Dirac Hexagon! Patching...";;
 esac
@@ -116,27 +116,9 @@ case $PRINTED in
 esac
 patch_cfgs $MODPATH/$NAME maxxaudio3 maxxaudio3 $LIBDIR/libmaxxeffect-cembedded.so ae12da60-99ac-11df-b456-0002a5d5c51b
 patch_cfgs $MODPATH/$NAME outsp maxxaudio3
-#Udb_Remover
-case $PRINTED in 
-  *Udb_Remover*) ;;
-  *) ui_print "    Found Deep Buffer Remover! Patching...";;
+#Udbraw_Remover
+case $FILE in
+  *.xml) sed -ri "/<mixPort name=\"(deep_buffer)|(raw)\"/,/<\/mixPort> *$/ s|flags=\".*\"|flags=\"AUDIO_OUTPUT_FLAG_FAST\"|" $MODPATH/$NAME;;
+  *.conf) sed -ri "/^ *(deep_buffer)|(raw) \{/,/}/ s|flags .*|flags AUDIO_OUTPUT_FLAG_FAST|" $MODPATH/$NAME;;
 esac
-if [ -f $MODPATH/system/vendor/etc/audio_output_policy.conf ] && [ -f $MODPATH/system/etc/audio_policy_configuration.xml ]; then
-  for BUFFER in "Earpiece" "Speaker" "Wired Headset" "Wired Headphones" "Line" "HDMI" "Proxy" "FM" "BT SCO All" "USB Device Out" "Telephony Tx" "voice_rx" "primary input" "surround_sound" "record_24" "BT A2DP Out" "BT A2DP Headphones" "BT A2DP Speaker"; do
-    sed -i "/$BUFFER/ s/deep_buffer//g" $MODPATH/system/etc/audio_policy_configuration.xml
-  done
-elif [ ! -f $MODPATH/system/vendor/etc/audio_output_policy.conf ] && [ -f $MODPATH/system/etc/audio_policy_configuration.xml ]; then
-  sed -i "s/deep_buffer,//g" $MODPATH/system/etc/audio_policy_configuration.xml
-  sed -i "s/,deep_buffer//g" $MODPATH/system/etc/audio_policy_configuration.xml
-elif [ -f $MODPATH/system/vendor/etc/audio/audio_policy_configuration.xml ]; then
-  sed -i "s/deep_buffer,//g" $MODPATH/system/vendor/etc/audio/audio_policy_configuration.xml
-  sed -i "s/,deep_buffer//g" $MODPATH/system/vendor/etc/audio/audio_policy_configuration.xml
-else
-  for FILE in ${POLS}; do
-    sed -i "/deep_buffer {/,/}/d" $MODPATH$FILE
-  done
-  for FILE in ${POLSXML}; do
-    sed -i "/deep_buffer {/,/}/d" $MODPATH$FILE
-  done
-fi
 #end

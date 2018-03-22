@@ -85,17 +85,18 @@ main() {
         for FILE in ${FILES}; do
           $LAST && cp_mv -m $FILE $COREPATH/aml/mods/$MODNAME/$(echo "$FILE" | sed "s|$MOD|system|")
         done
-      elif [ "$MODNAME" == "Udb_Remover" ]; then
+      elif [ "$MODNAME" == "Udbraw_Remover" ]; then
         $LAST && { for FILE in ${FILES}; do
+                     NAME=$(echo "$FILE" | sed "s|$MOD|system|")
                      cp_mv -m $FILE $COREPATH/aml/mods/$MODNAME/$(echo "$FILE" | sed "s|$MOD|system|")
+                     . $MODPATH/.scripts/$MODNAME.sh
                    done; }
-        . $MODPATH/.scripts/$MODNAME.sh
       else
         for FILE in ${FILES}; do
           NAME=$(echo "$FILE" | sed "s|$MOD|system|")
           case $FILE in
             *audio_effects*) for AUDMOD in $(ls $MODPATH/.scripts); do
-                               [ "$AUDMOD" == "ainur_sauron" -o "$AUDMOD" == "Udb_Remover" ] && continue
+                               [ "$AUDMOD" == "ainur_sauron" -o "$AUDMOD" == "Udbraw_Remover" ] && continue
                                LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
                                UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
                                if [ "$(sed -n "/^libraries {/,/^}/ {/$LIB.so/p}" $FILE)" ] && [ "$(sed -n "/^effects {/,/^}/ {/uuid $UUID/p}" $FILE)" ] && [ "$(find $MODDIR/$MODNAME/system -type f -name "$LIB.so")" ]; then
@@ -104,7 +105,7 @@ main() {
                                fi
                              done;;
             *audio_effects*.xml) for AUDMOD in $(ls $INSTALLER/mods); do
-                               [ "$AUDMOD" == "ainur_sauron" -o "$AUDMOD" == "Udb_Remover" ] && continue
+                               [ "$AUDMOD" == "ainur_sauron" -o "$AUDMOD" == "Udbraw_Remover" ] && continue
                                LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
                                UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")                               
                                if [ "$(sed -n "/<libraries>/,/<\/libraries>/ {/path=\"$LIB.so\"/p}" $FILE)" ] && [ "$(sed -n "/<effects>/,/<\/effects>/ {/uuid=\"$UUID\"/p}" $FILE)" ] && [ "$(find $MOD -type f -name "$LIB.so")" ]; then

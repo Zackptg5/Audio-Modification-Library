@@ -238,19 +238,20 @@ installmod() {
           cp_mv -m $FILE $MOUNTPATH/.core/aml/mods/$MODNAME/$(echo "$FILE" | sed "s|$MOD|system|")
         done
       # Universal deep_buffer remover doesn't install anything new so only detection for it is the modname - ahrion's ubdr
-      elif [ "$MODNAME" == "Udb_Remover" ]; then
+      elif [ "$MODNAME" == "Udbraw_Remover" ]; then
+        ui_print "    Found Deep_Buffer & Raw Remover! Patching..."
         for FILE in ${FILES}; do
+          NAME=$(echo "$FILE" | sed "s|$MOD|system|")
           cp_mv -m $FILE $MOUNTPATH/.core/aml/mods/$MODNAME/$(echo "$FILE" | sed "s|$MOD|system|")
+          . $INSTALLER/mods/$MODNAME.sh
         done
-        . $INSTALLER/mods/$MODNAME.sh
-        PRINTED="${PRINTED} Udb_Remover"
       # All other audio mods are accounted for here
       else
         for FILE in ${FILES}; do
           NAME=$(echo "$FILE" | sed "s|$MOD|system|")
           case $FILE in
             *audio_effects*.conf) for AUDMOD in $(ls $INSTALLER/mods); do
-                               [ "$AUDMOD" == "ainur_sauron" -o "$AUDMOD" == "Udb_Remover" ] && continue
+                               [ "$AUDMOD" == "ainur_sauron" -o "$AUDMOD" == "Udbraw_Remover" ] && continue
                                LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
                                UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
                                if [ "$(sed -n "/^libraries {/,/^}/ {/$LIB.so/p}" $FILE)" ] && [ "$(sed -n "/^effects {/,/^}/ {/uuid $UUID/p}" $FILE)" ] && [ "$(find $MOD -type f -name "$LIB.so")" ]; then
@@ -260,7 +261,7 @@ installmod() {
                                fi
                              done;;
             *audio_effects*.xml) for AUDMOD in $(ls $INSTALLER/mods); do
-                               [ "$AUDMOD" == "ainur_sauron" -o "$AUDMOD" == "Udb_Remover" ] && continue
+                               [ "$AUDMOD" == "ainur_sauron" -o "$AUDMOD" == "Udbraw_Remover" ] && continue
                                LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
                                UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")                               
                                if [ "$(sed -n "/<libraries>/,/<\/libraries>/ {/path=\"$LIB.so\"/p}" $FILE)" ] && [ "$(sed -n "/<effects>/,/<\/effects>/ {/uuid=\"$UUID\"/p}" $FILE)" ] && [ "$(find $MOD -type f -name "$LIB.so")" ]; then
