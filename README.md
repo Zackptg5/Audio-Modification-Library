@@ -2,8 +2,12 @@
 AudModLib is a compatibility framework that allows the seamless integration of multiple audio mods for Magisk installs. [More details in support thread](https://forum.xda-developers.com/apps/magisk/mod-audio-modification-library-t3745466).
 
 ## Change Log
-### v1.4.8 - 3.xx.2018
-* Replaced ubdr with redone univ-dbraw-remover
+### v1.4.9 - 3.xx.2018
+* Add soundalive and dha effect removal (needed for some samsung devices)
+* Pull ACP patch from ACP mod rather than static patch
+
+### v1.4.8 - 3.22.2018
+* Replaced ubdr with redone ACP
 
 ### v1.4.7 - 3.1.2018
 * Added new oreo Ice port

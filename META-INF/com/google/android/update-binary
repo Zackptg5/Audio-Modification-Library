@@ -206,14 +206,18 @@ installmod() {
   # Comment out music_helper and sa3d (samsung equivalent)
   for FILE in $MODPATH/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf; do
     if [ -f $FILE ]; then
-      sed -i "/effects {/,/^}/ {/music_helper {/,/}/d}" $FILE
+      sed -i "/effects {/,/^}/ {/music_helper {/,/^  }}/d}" $FILE
       sed -i "/effects {/,/^}/ {/sa3d {/,/^  }/d}" $FILE
+      sed -i "/effects {/,/^}/ {/soundalive {/,/^  }/d}" $FILE
+      sed -i "/effects {/,/^}/ {/dha {/,/^  }/d}" $FILE
     fi
   done
   for FILE in $MODPATH/system/etc/audio_effects.xml $MODPATH/system/vendor/etc/audio_effects.xml; do
     if [ -f $FILE ]; then
       sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"music_helper\"\/>/d}}" $FILE
       sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"sa3d\"\/>/d}}" $FILE
+      sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"soundalive\"\/>/d}}" $FILE
+      sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"dha\"\/>/d}}" $FILE
     fi
   done
   # Search magisk img for any audio mods and move relevant files (confs/pols/mixs/props) to non-mounting directory
@@ -239,11 +243,12 @@ installmod() {
         done
       # acp doesn't install anything new so only detection for it is the modname - ahrion's acp
       elif [ "$MODNAME" == "acp" ]; then
+        # Use aml script included with acp
+        cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/acp.sh
         ui_print "    Found Audio Compatibility Patch! Patching..."
+        . $MODPATH/.scripts/acp.sh
         for FILE in ${FILES}; do
-          NAME=$(echo "$FILE" | sed "s|$MOD|system|")
           cp_mv -m $FILE $MOUNTPATH/.core/aml/mods/$MODNAME/$(echo "$FILE" | sed "s|$MOD|system|")
-          . $INSTALLER/mods/$MODNAME.sh
         done
       # All other audio mods are accounted for here
       else

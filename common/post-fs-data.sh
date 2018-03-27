@@ -86,11 +86,11 @@ main() {
           $LAST && cp_mv -m $FILE $COREPATH/aml/mods/$MODNAME/$(echo "$FILE" | sed "s|$MOD|system|")
         done
       elif [ "$MODNAME" == "acp" ]; then
-        $LAST && { for FILE in ${FILES}; do
-                     NAME=$(echo "$FILE" | sed "s|$MOD|system|")
-                     cp_mv -m $FILE $COREPATH/aml/mods/$MODNAME/$(echo "$FILE" | sed "s|$MOD|system|")
-                     . $MODPATH/.scripts/$MODNAME.sh
-                   done; }
+        cp_mv -c $MODDIR/$MODNAME/.aml.sh $MODPATH/.scripts/acp.sh
+        . $MODPATH/.scripts/acp.sh
+        for FILE in ${FILES}; do
+          $LAST && cp_mv -m $FILE $COREPATH/aml/mods/$MODNAME/$(echo "$FILE" | sed "s|$MOD|system|")
+        done
       else
         for FILE in ${FILES}; do
           NAME=$(echo "$FILE" | sed "s|$MOD|system|")
@@ -165,14 +165,18 @@ if $REMPATCH; then
   done
   for FILE in $MODPATH/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf; do
     if [ -f $FILE ]; then
-      sed -i "/effects {/,/^}/ {/music_helper {/,/}/d}" $FILE
+      sed -i "/effects {/,/^}/ {/music_helper {/,/^  }}/d}" $FILE
       sed -i "/effects {/,/^}/ {/sa3d {/,/^  }/d}" $FILE
+      sed -i "/effects {/,/^}/ {/soundalive {/,/^  }/d}" $FILE
+      sed -i "/effects {/,/^}/ {/dha {/,/^  }/d}" $FILE
     fi
   done
   for FILE in $MODPATH/system/etc/audio_effects.xml $MODPATH/system/vendor/etc/audio_effects.xml; do
     if [ -f $FILE ]; then
       sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"music_helper\"\/>/d}}" $FILE
       sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"sa3d\"\/>/d}}" $FILE
+      sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"soundalive\"\/>/d}}" $FILE
+      sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"dha\"\/>/d}}" $FILE
     fi
   done
   main "$COREPATH/aml/mods/*/system"

@@ -116,9 +116,4 @@ case $PRINTED in
 esac
 patch_cfgs $MODPATH/$NAME maxxaudio3 maxxaudio3 $LIBDIR/libmaxxeffect-cembedded.so ae12da60-99ac-11df-b456-0002a5d5c51b
 patch_cfgs $MODPATH/$NAME outsp maxxaudio3
-#acp
-case $FILE in
-  *.xml) sed -ri "/<mixPort name=\"(deep_buffer)|(raw)\"/,/<\/mixPort> *$/ s|flags=\".*\"|flags=\"AUDIO_OUTPUT_FLAG_FAST\"|" $MODPATH/$NAME;;
-  *.conf) sed -ri "/^ *(deep_buffer)|(raw) \{/,/}/ s|flags .*|flags AUDIO_OUTPUT_FLAG_FAST|" $MODPATH/$NAME;;
-esac
 #end
