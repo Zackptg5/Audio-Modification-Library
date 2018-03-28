@@ -5,6 +5,7 @@ AudModLib is a compatibility framework that allows the seamless integration of m
 ### v1.4.9 - 3.xx.2018
 * Add soundalive and dha effect removal (needed for some samsung devices)
 * Pull ACP patch from ACP mod rather than static patch
+* Fine tuned osp patching
 
 ### v1.4.8 - 3.22.2018
 * Replaced ubdr with redone ACP
