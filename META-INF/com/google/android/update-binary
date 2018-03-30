@@ -124,6 +124,12 @@ cp_mv() {
   if [ -z $4 ]; then install -D "$2" "$3"; else install -D -m "$4" "$2" "$3"; fi
   [ "$1" == "-m" ] && rm -f $2
 }
+ospeff_rem() {
+  case $2 in
+    *.conf) [ "$(sed -n "/^output_session_processing {/,/^}/ {/$1/p}" $2)" ] && sed -i "/effects {/,/^}/ {/^ *$1 {/,/}/ s/^/#/g}" $2;;
+    *.xml) sed -ri "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ s/^( *)<apply effect=\"$1\"\/>/\1<\!--<apply effect=\"$1\"\/>-->/}" $2;;
+  esac
+}
 processing_patch() {
   if [ "$1" == "pre" ]; then
     CONF=pre_processing
@@ -213,20 +219,12 @@ installmod() {
     done
   fi
   # Comment out music_helper and sa3d (samsung equivalent)
-  for FILE in $MODPATH/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf; do
+  for FILE in $MODPATH/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf $MODPATH/system/etc/audio_effects.xml $MODPATH/system/vendor/etc/audio_effects.xml; do
     if [ -f $FILE ]; then
-      sed -i "/effects {/,/^}/ {/music_helper {/,/^  }}/d}" $FILE
-      sed -i "/effects {/,/^}/ {/sa3d {/,/^  }/d}" $FILE
-      sed -i "/effects {/,/^}/ {/soundalive {/,/^  }/d}" $FILE
-      sed -i "/effects {/,/^}/ {/dha {/,/^  }/d}" $FILE
-    fi
-  done
-  for FILE in $MODPATH/system/etc/audio_effects.xml $MODPATH/system/vendor/etc/audio_effects.xml; do
-    if [ -f $FILE ]; then
-      sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"music_helper\"\/>/d}}" $FILE
-      sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"sa3d\"\/>/d}}" $FILE
-      sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"soundalive\"\/>/d}}" $FILE
-      sed -i "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ {/<apply effect=\"dha\"\/>/d}}" $FILE
+      ospeff_rem "music_helper" $FILE
+      ospeff_rem "sa3d" $FILE
+      ospeff_rem "soundalive" $FILE
+      ospeff_rem "dha" $FILE
     fi
   done
   # Search magisk img for any audio mods and move relevant files (confs/pols/mixs/props) to non-mounting directory
