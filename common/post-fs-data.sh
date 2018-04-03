@@ -18,10 +18,16 @@ cp_mv() {
   if [ -z $4 ]; then install -D "$2" "$3"; else install -D -m "$4" "$2" "$3"; fi
   [ "$1" == "-m" ] && rm -f $2
 }
-ospeff_rem() {
-  case $2 in
-    *.conf) [ "$(sed -n "/^output_session_processing {/,/^}/ {/$1/p}" $2)" ] && sed -i "/effects {/,/^}/ {/^ *$1 {/,/}/ s/^/#/g}" $2;;
-    *.xml) sed -ri "/^ *<postprocess>$/,/<\/postprocess>/ {/<stream type=\"music\">/,/<\/stream>/ s/^( *)<apply effect=\"$1\"\/>/\1<\!--<apply effect=\"$1\"\/>-->/}" $2;;
+osp_detect() {
+  case $1 in
+    *.conf) EFFECTS=$(sed -n "/^output_session_processing {/,/^}/ {/^    music {/,/^    }/p}" $1 | grep -E "^        [A-Za-z]+" | sed "s/ {//g")
+            for EFFECT in ${EFFECTS}; do
+              [ "$EFFECT" != "atmos" ] && sed -i "/effects {/,/^}/ {/^ *$EFFECT {/,/}/ s/^/#/g}" $1
+            done;;
+     *.xml) EFFECTS=$(sed -n "/^ *<postprocess>$/,/^ *<\/postprocess>$/ {/^ *<stream type=\"music\">$/,/^ *<\/stream>$/ {/<stream type=\"music\">\|<\/stream>/d; s/<apply effect=\"//g; s/\"\/>//g; p}}" $1)
+            for EFFECT in ${EFFECTS}; do
+              [ "$EFFECT" != "atmos" ] && sed -ri "s/^( *)<apply effect=\"$EFFECT\"\/>/\1<\!--<apply effect=\"$EFFECT\"\/>-->/" $1
+            done;;
   esac
 }
 processing_patch() {
@@ -179,12 +185,7 @@ if $REMPATCH; then
     cp_mv -c $FILE $MODPATH/system/$NAME
   done
   for FILE in $MODPATH/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf $MODPATH/system/etc/audio_effects.xml $MODPATH/system/vendor/etc/audio_effects.xml; do
-    if [ -f $FILE ]; then
-      ospeff_rem "music_helper" $FILE
-      ospeff_rem "sa3d" $FILE
-      ospeff_rem "soundalive" $FILE
-      ospeff_rem "dha" $FILE
-    fi
+    [ -f $FILE ] && osp_detect $FILE
   done
   main "$COREPATH/aml/mods/*/system"
 elif $NEWPATCH; then
