@@ -20,9 +20,9 @@ cp_mv() {
 }
 osp_detect() {
   case $1 in
-    *.conf) EFFECTS=$(sed -n "/^output_session_processing {/,/^}/ {/^    music {/,/^    }/p}" $1 | grep -E "^        [A-Za-z]+" | sed "s/ {//g")
+    *.conf) EFFECTS=$(sed -n "/^output_session_processing {/,/^}/ {/^    music {/,/^    }/p}" $1 | grep -E "^        [A-Za-z]+" | sed -r "s/( *.*) .*/\1/g")
             for EFFECT in ${EFFECTS}; do
-              [ "$EFFECT" != "atmos" ] && sed -i "/effects {/,/^}/ {/^ *$EFFECT {/,/}/ s/^/#/g}" $1
+              [ "$EFFECT" != "atmos" ] && sed -i "/effects {/,/^}/ {/^  $EFFECT {/,/^  }/ s/^/#/g}" $1
             done;;
      *.xml) EFFECTS=$(sed -n "/^ *<postprocess>$/,/^ *<\/postprocess>$/ {/^ *<stream type=\"music\">$/,/^ *<\/stream>$/ {/<stream type=\"music\">\|<\/stream>/d; s/<apply effect=\"//g; s/\"\/>//g; p}}" $1)
             for EFFECT in ${EFFECTS}; do
