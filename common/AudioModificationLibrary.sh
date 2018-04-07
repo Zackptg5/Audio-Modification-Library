@@ -4,6 +4,11 @@ case $PRINTED in
   *) ui_print "    Found AM3D! Patching..." ;;
 esac
 patch_cfgs $MODPATH/$NAME am3daudioenhancement am3daudioenhancement $LIBDIR/libam3daudioenhancement.so 6723dd80-f0b7-11e0-98a2-0002a5d5c51b
+#libv4a_fx~41d3c987-e6cf-11e3-a88a-11aba5d5c51b
+case $PRINTED in 
+  *41d3c987-e6cf-11e3-a88a-11aba5d5c51b*) ;;
+  *) ui_print "    Found V4A Materialized! Patching...";;
+esac
 #libv4a_fx_ics~41d3c987-e6cf-11e3-a88a-11aba5d5c51b
 case $PRINTED in 
   *41d3c987-e6cf-11e3-a88a-11aba5d5c51b*) ;;
