@@ -9,6 +9,7 @@ case $PRINTED in
   *41d3c987-e6cf-11e3-a88a-11aba5d5c51b*) ;;
   *) ui_print "    Found V4A Materialized! Patching...";;
 esac
+patch_cfgs $MODPATH/$NAME v4a_fx v4a_standard_fx $LIBDIR/libv4a_fx.so 41d3c987-e6cf-11e3-a88a-11aba5d5c51b
 #libv4a_fx_ics~41d3c987-e6cf-11e3-a88a-11aba5d5c51b
 case $PRINTED in 
   *41d3c987-e6cf-11e3-a88a-11aba5d5c51b*) ;;
