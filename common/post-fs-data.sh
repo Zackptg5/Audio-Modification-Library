@@ -14,8 +14,15 @@ OREONEW=<OREONEW>
 MODS=""
 
 #Functions
-cp_mv() {                   
-  if [ -z $4 ]; then install -D "$2" "$3"; else install -D -m "$4" "$2" "$3"; fi
+cp_mv() {
+  if [ -z $4 ]; then
+    mkdir -p "$(dirname $3)"
+    cp -f "$2" "$3"
+  else
+    mkdir -p "$(dirname $3)"
+    cp -f "$2" "$3"
+    chmod $4 "$3"
+  fi
   [ "$1" == "-m" ] && rm -f $2
 }
 osp_detect() {
@@ -181,7 +188,7 @@ if $REMPATCH; then
     rm -rf $COREPATH/aml/mods/$MODNAME
     sed -i "/$MODNAME/d" $COREPATH/aml/mods/modlist
   done
-  FILES="$(find /sbin/.core/mirror/system /sbin/.core/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" | sed "s|/sbin/.core/mirror/vendor|/sbin/.core/mirror/system/vendor|g")"
+  FILES="$(find /sbin/.core/mirror/system /sbin/.core/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml")"
   for FILE in ${FILES}; do
     NAME=$(echo "$FILE" | sed -e "s|/sbin/.core/mirror||" -e "s|/system/||")
     cp_mv -c $FILE $MODPATH/system/$NAME
