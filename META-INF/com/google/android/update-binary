@@ -248,26 +248,15 @@ installmod() {
       [ -z "$FILES" ] && continue
       MODNAME=$(basename $(dirname $MOD))
       echo "$MODNAME" >> $MOUNTPATH/.core/aml/mods/modlist
-      # Ainur sauron needs some custom logic due to its dynamic patching (not all installs are the same)
-      if [ "$MODNAME" == "ainur_sauron" ]; then
-        # Use aml script included with sauron
-        cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/ainur_sauron.sh
-        LIBDIR="$(dirname $(find $MOD -type f -name "libbundlewrapper.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
-        ui_print "    Found Ainur Sauron! Patching..."
-        . $MODPATH/.scripts/ainur_sauron.sh
+      if [ -f "$(dirname $MOD)/.aml.sh" ]; then
+        ui_print "    Found $(sed -n "s/^name=//p" $(dirname $MOD)/module.prop)! Patching..."
+        # Use aml script included with mod
+        [ "$MODNAME" == "ainur_sauron" ] && LIBDIR="$(dirname $(find $MOD -type f -name "libbundlewrapper.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
+        cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$MODNAME.sh
+        (. $MODPATH/.scripts/$MODNAME.sh) || { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; }
         for FILE in ${FILES}; do
           cp_mv -m $FILE $MOUNTPATH/.core/aml/mods/$MODNAME/$(echo "$FILE" | sed "s|$MOD|system|")
         done
-      # acp doesn't install anything new so only detection for it is the modname - ahrion's acp
-      elif [ "$MODNAME" == "acp" ]; then
-        # Use aml script included with acp
-        cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/acp.sh
-        ui_print "    Found Audio Compatibility Patch! Patching..."
-        . $MODPATH/.scripts/acp.sh
-        for FILE in ${FILES}; do
-          cp_mv -m $FILE $MOUNTPATH/.core/aml/mods/$MODNAME/$(echo "$FILE" | sed "s|$MOD|system|")
-        done
-      # All other audio mods are accounted for here
       else
         for FILE in ${FILES}; do
           NAME=$(echo "$FILE" | sed "s|$MOD|system|")
