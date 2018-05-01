@@ -302,7 +302,7 @@ installmod() {
             $CONFPRINT || { ui_print " "
             ui_print "   ! Conflicting props found !"
             ui_print "   ! Conflicting props will be commented out !"
-            ui_print "   ! Check the conflicting props file at /magisk/aml/system.prop"
+            ui_print "   ! Check the conflicting props file at /sbin/.core/img/aml/system.prop"
             ui_print " "; }
             CONFPRINT=true
           fi
