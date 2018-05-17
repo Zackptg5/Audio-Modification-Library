@@ -40,7 +40,6 @@ osp_detect() {
   esac
 }
 patch_cfgs() {
-  # set -x
   local first=true file lib=false effect=false outsp=false proxy=false libname libpath effname uid libname_sw uid_sw libname_hw uid_hw libpathsw libpathhw conf xml
   local opt=`getopt :leopr "$@"`
   eval set -- "$opt"
@@ -57,7 +56,6 @@ patch_cfgs() {
   done
   file=$1; shift
   $first && { lib=true; effect=true; }
-  # set -e
   if $proxy; then
     effname=$1; shift
     libname_sw=$1; uid_sw=${2:?}; shift 2
@@ -71,7 +69,6 @@ patch_cfgs() {
     { $lib || $effect; } && { libname=${1:?}; shift; }
     $lib && { libpath=${1:?}; shift; }
   fi
-  # set +e
   case "$file" in
   *.conf) 
     if $proxy; then
