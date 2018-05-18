@@ -10,7 +10,7 @@ MODDIR=$(dirname $MODPATH)
 COREPATH=$(dirname $MODPATH)/.core
 REMPATCH=false
 NEWPATCH=false
-OREONEW=<OREONEW>
+OREONEW=false
 MODS=""
 
 #Functions
@@ -70,7 +70,7 @@ patch_cfgs() {
     $lib && { libpath=${1:?}; shift; }
   fi
   case "$file" in
-  *.conf) 
+  *.conf)
     if $proxy; then
       [ ! "$(sed -n "/^effects {/,/^}/ {/^  $effname {/,/^  }/ {/uuid $uid_hw/p}}" $file)" ] && sed -i "s/^effects {/effects {\n  $effname {\n    library proxy\n    uuid 9d4921da-8225-4f29-aefa-6e6f69726861\n\n    libsw {\n      library $libname_sw\n      uuid $uid_sw\n    }\n\n    libhw {\n      library $libname_hw\n      uuid $uid_hw\n    }\n  }/g" $file
       if $lib; then
@@ -80,7 +80,7 @@ patch_cfgs() {
       fi
       return
     fi
-    if $lib; then 
+    if $lib; then
       [ ! "$(sed -n "/^libraries {/,/^}/ {/^ *$libname {/,/}/p}" $file)" ] && sed -i "s|^libraries {|libraries {\n  $libname {\n    path $libpath\n  }|" $file
     fi
     if $effect; then
@@ -95,7 +95,7 @@ patch_cfgs() {
         sed -i "/^$conf {/,/^}/ {/$type {/,/^    }/ s/$type {/$type {\n        $effname {\n        }/}" $file
       fi
     fi;;
-  *) 
+  *)
     if $proxy; then
       [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/<effectProxy name=\"proxy\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">/,/<\/effectProxy>/ {/uuid=\"$uid_hw\"/}}" $file)" ] && sed -i -e "/<effects>/ a\        <effectProxy name=\"proxy\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">\n            <libsw library=\"$libname_sw\" uuid=\"$uid_sw\"\/>\n            <libhw library=\"$libname_hw\" uuid=\"$uid_hw\"\/>\n        <\/effectProxy>" $file
       if $lib; then
@@ -114,7 +114,7 @@ patch_cfgs() {
     if $outsp && [ "$API" -ge 26 ]; then
       if [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/p" $file)" ]; then
         sed -i "/<\/audio_effects_conf>/i\    <$xml>\n       <stream type=\"$type\">\n            <apply effect=\"$effname\"\/>\n        <\/stream>\n    <\/$xml>" $file
-      elif [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/p}" $file)" ]; then     
+      elif [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/p}" $file)" ]; then
         sed -i "/^ *<$xml>/,/^ *<\/$xml>/ s/    <$xml>/    <$xml>\n        <stream type=\"$type\">\n            <apply effect=\"$effname\"\/>\n        <\/stream>/" $file
       elif [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/ {/^ *<apply effect=\"$effname\"\/>/p}}" $file)" ]; then
         sed -i "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/ s/<stream type=\"$type\">/<stream type=\"$type\">\n            <apply effect=\"$effname\"\/>/}" $file
@@ -170,7 +170,7 @@ main() {
                                else
                                  for AUDMOD in $(ls $INSTALLER/mods); do
                                  LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
-                                 UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")                               
+                                 UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
                                  if [ "$(sed -n "/<libraries>/,/<\/libraries>/ {/path=\"$LIB.so\"/p}" $FILE)" ] && [ "$(sed -n "/<effects>/,/<\/effects>/ {/uuid=\"$UUID\"/p}" $FILE)" ] && [ "$(find $MOD -type f -name "$LIB.so")" ]; then
                                    LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
                                    . $INSTALLER/mods/$AUDMOD

@@ -53,6 +53,18 @@ MOUNTPATH=$TMPDIR/magisk_img
 # Preperation for flashable zips
 get_outfd
 
+# Mount partitions
+mount_partitions
+
+# Detect version and architecture
+api_level_arch_detect
+
+# You can get the Android API version from $API, the CPU architecture from $ARCH
+# Useful if you are creating Android version / platform dependent mods
+
+# Setup busybox and binaries
+$BOOTMODE && boot_actions || recovery_actions
+
 ##########################################################################################
 # Preparation
 ##########################################################################################
@@ -78,20 +90,6 @@ ui_print "******************************"
 ui_print "Powered by Magisk (@topjohnwu)"
 ui_print "******************************"
 
-# Mount partitions
-mount_partitions
-
-# Detect version and architecture
-api_level_arch_detect
-
-# You can get the Android API version from $API, the CPU architecture from $ARCH
-# Useful if you are creating Android version / platform dependent mods
-if [ $API -ge 26 ]; then OREONEW=true; else OREONEW=false; fi
-sed -i "s/<OREONEW>/$OREONEW/" $INSTALLER/common/post-fs-data.sh
-
-# Setup busybox and binaries
-$BOOTMODE && boot_actions || recovery_actions
-
 ##########################################################################################
 # Functions
 ##########################################################################################
@@ -113,7 +111,7 @@ remove_old_aml() {
         fi
         if [ ! "$(ls -A "${LINE%/*}")" ]; then
           rm -rf ${LINE%/*}
-        fi      
+        fi
       done < $FILE
       rm -f $FILE
     fi
@@ -186,7 +184,7 @@ patch_cfgs() {
       fi
       return
     fi
-    if $lib; then 
+    if $lib; then
       [ ! "$(sed -n "/^libraries {/,/^}/ {/^ *$libname {/,/}/p}" $file)" ] && sed -i "s|^libraries {|libraries {\n  $libname {\n    path $libpath\n  }|" $file
     fi
     if $effect; then
@@ -201,7 +199,7 @@ patch_cfgs() {
         sed -i "/^$conf {/,/^}/ {/$type {/,/^    }/ s/$type {/$type {\n        $effname {\n        }/}" $file
       fi
     fi;;
-  *) 
+  *)
     if $proxy; then
       [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/<effectProxy name=\"proxy\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">/,/<\/effectProxy>/ {/uuid=\"$uid_hw\"/}}" $file)" ] && sed -i -e "/<effects>/ a\        <effectProxy name=\"proxy\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">\n            <libsw library=\"$libname_sw\" uuid=\"$uid_sw\"\/>\n            <libhw library=\"$libname_hw\" uuid=\"$uid_hw\"\/>\n        <\/effectProxy>" $file
       if $lib; then
@@ -221,7 +219,7 @@ patch_cfgs() {
       if [ "$API" -ge 26 ]; then
         if [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/p" $file)" ]; then
           sed -i "/<\/audio_effects_conf>/i\    <$xml>\n       <stream type=\"$type\">\n            <apply effect=\"$effname\"\/>\n        <\/stream>\n    <\/$xml>" $file
-        elif [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/p}" $file)" ]; then     
+        elif [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/p}" $file)" ]; then
           sed -i "/^ *<$xml>/,/^ *<\/$xml>/ s/    <$xml>/    <$xml>\n        <stream type=\"$type\">\n            <apply effect=\"$effname\"\/>\n        <\/stream>/" $file
         elif [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/ {/^ *<apply effect=\"$effname\"\/>/p}}" $file)" ]; then
           sed -i "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/ s/<stream type=\"$type\">/<stream type=\"$type\">\n            <apply effect=\"$effname\"\/>/}" $file
@@ -232,7 +230,7 @@ patch_cfgs() {
   esac
 }
 installmod() {
-  ui_print "- Installing Audio Modification Library"  
+  ui_print "- Installing Audio Modification Library"
   # Create mod paths
   mktouch $MOUNTPATH/.core/aml/mods/modlist
   mktouch $MODPATH/system.prop
@@ -244,8 +242,8 @@ installmod() {
   mkdir -p $INSTALLER/mods
   while read LINE; do
     case $LINE in
-      \#*) if [ -z $TMP ]; then 
-             TMP=1; 
+      \#*) if [ -z $TMP ]; then
+             TMP=1;
            else
              echo " " >> $INSTALLER/mods/$UUID.sh
              cp_mv -c $INSTALLER/mods/$UUID.sh $MODPATH/.scripts/$UUID.sh
@@ -255,7 +253,7 @@ installmod() {
       *) echo "$LINE" >> $INSTALLER/mods/$UUID.sh;;
     esac
   done < $INSTALLER/common/AudioModificationLibrary.sh
-  
+
   # Copy original files to MODPATH
   if $BOOTMODE; then
     FILES="$(find /sbin/.core/mirror/system /sbin/.core/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml")"
@@ -316,7 +314,7 @@ installmod() {
                                else
                                  for AUDMOD in $(ls $INSTALLER/mods); do
                                    LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
-                                   UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")                               
+                                   UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
                                    if [ "$(sed -n "/<libraries>/,/<\/libraries>/ {/path=\"$LIB.so\"/p}" $FILE)" ] && [ "$(sed -n "/<effects>/,/<\/effects>/ {/uuid=\"$UUID\"/p}" $FILE)" ] && [ "$(find $MOD -type f -name "$LIB.so")" ]; then
                                      LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
                                      (. $INSTALLER/mods/$AUDMOD) || { [ -z "$PRINTED" ] && { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; } }
@@ -366,7 +364,7 @@ installmod() {
 
   # prop files
   [ -s $MODPATH/system.prop ] || rm -f $MODPATH/system.prop
-  
+
   # Module info
   cp -af $INSTALLER/module.prop $MODPATH/module.prop
   if $BOOTMODE; then
@@ -376,12 +374,13 @@ installmod() {
   fi
 
   # post-fs-data mode scripts
+  [ $API -ge 26 ] && sed -i "s/OREONEW=false/OREONEW=true/" $INSTALLER/common/post-fs-data.sh
   $POSTFSDATA && cp -af $INSTALLER/common/post-fs-data.sh $MODPATH/post-fs-data.sh
   cp_mv -c $INSTALLER/common/aml.sh $MOUNTPATH/.core/post-fs-data.d/aml.sh 0755
 
   # service mode scripts
   $LATESTARTSERVICE && cp -af $INSTALLER/common/service.sh $MODPATH/service.sh
-  
+
   # ADD BLANK LINE TO END OF ALL PROP/SCRIPT FILES IF NOT ALREADY PRESENT
   for FILE in $MODPATH/*.sh $MODPATH/*.prop $MOUNTPATH/.core/post-fs-data.d/aml.sh; do
     [ "$(tail -1 $FILE)" ] && echo "" >> $FILE
@@ -400,7 +399,7 @@ uninstallmod() {
   else
     MODDIR=$MOUNTPATH
   fi
-  
+
   [ -f $COREPATH/aml/mods/modlist ] && {
   if [ -s $COREPATH/aml/mods/modlist ]; then
     while read LINE; do
@@ -418,7 +417,7 @@ uninstallmod() {
 # Install
 ##########################################################################################
 
-# Get the variable reqSizeM. Use your own method to determine reqSizeM if needed                                                                               
+# Get the variable reqSizeM. Use your own method to determine reqSizeM if needed
 request_zip_size_check "$ZIP"
 
 # This function will mount $IMG to $MOUNTPATH, and resize the image based on $reqSizeM

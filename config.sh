@@ -2,21 +2,21 @@
 #
 # Magisk Module Template Config Script
 # by topjohnwu
-# 
+#
 # This is a template zip for developers
 #
 ##########################################################################################
 ##########################################################################################
-# 
+#
 # Instructions:
-# 
+#
 # 1. Place your files into system folder (delete the placeholder file)
 # 2. Fill in your module's info into module.prop
 # 3. Configure the settings in this file (common/config.sh)
 # 4. For advanced features, add shell commands into the script files under common:
 #    post-fs-data.sh, service.sh
 # 5. For changing props, add your additional/modified props into common/system.prop
-# 
+#
 ##########################################################################################
 
 ##########################################################################################
@@ -100,3 +100,13 @@ set_permissions() {
   # set_perm  $MODPATH/system/bin/dex2oat         0       2000    0755         u:object_r:dex2oat_exec:s0
   # set_perm  $MODPATH/system/lib/libart.so       0       0       0644
 }
+
+#########################################################################################
+# Custom Functions
+##########################################################################################
+
+# This file (config.sh) will be sourced by the main flash script after util_functions.sh
+# If you need custom logic, please add them here as functions, and call these functions in
+# update-binary. Refrain from adding code directly into update-binary, as it will make it
+# difficult for you to migrate your modules to newer template versions.
+# Make update-binary as clean as possible, try to only do function calls in it.
