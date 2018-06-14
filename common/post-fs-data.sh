@@ -111,14 +111,17 @@ patch_cfgs() {
     if $effect; then
       [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\" library=\"$libname\" uuid=\"$uid\"\/>/p}" $file)" ] && sed -i "/<effects>/ a\        <effect name=\"$effname\" library=\"$(basename $libname)\" uuid=\"$uid\"\/>" $file
     fi
-    if $outsp && [ "$API" -ge 26 ]; then
-      if [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/p" $file)" ]; then
-        sed -i "/<\/audio_effects_conf>/i\    <$xml>\n       <stream type=\"$type\">\n            <apply effect=\"$effname\"\/>\n        <\/stream>\n    <\/$xml>" $file
-      elif [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/p}" $file)" ]; then
-        sed -i "/^ *<$xml>/,/^ *<\/$xml>/ s/    <$xml>/    <$xml>\n        <stream type=\"$type\">\n            <apply effect=\"$effname\"\/>\n        <\/stream>/" $file
-      elif [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/ {/^ *<apply effect=\"$effname\"\/>/p}}" $file)" ]; then
-        sed -i "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/ s/<stream type=\"$type\">/<stream type=\"$type\">\n            <apply effect=\"$effname\"\/>/}" $file
+    if $outsp; then
+      if [ "$API" -ge 26 ]; then
+        if [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/p" $file)" ]; then
+          sed -i "/<\/audio_effects_conf>/i\    <$xml>\n       <stream type=\"$type\">\n            <apply effect=\"$effname\"\/>\n        <\/stream>\n    <\/$xml>" $file
+        elif [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/p}" $file)" ]; then
+          sed -i "/^ *<$xml>/,/^ *<\/$xml>/ s/    <$xml>/    <$xml>\n        <stream type=\"$type\">\n            <apply effect=\"$effname\"\/>\n        <\/stream>/" $file
+        elif [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/ {/^ *<apply effect=\"$effname\"\/>/p}}" $file)" ]; then
+          sed -i "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/ s/<stream type=\"$type\">/<stream type=\"$type\">\n            <apply effect=\"$effname\"\/>/}" $file
+        fi
       fi
+      patch_cfgs "$file" "effname" "$uid" "$libname" "$libpath"
     fi;;
   esac
 }
@@ -151,32 +154,36 @@ main() {
       for FILE in ${FILES}; do
         NAME=$(echo "$FILE" | sed "s|$MOD|system|")
         case $FILE in
-          *audio_effects*) for AUDMOD in $(ls $MODPATH/.scripts); do
-                             if [ "$AUDMOD" == "$MODNAME" ]; then
+          *audio_effects*.conf) for AUDMOD in $(ls $MODPATH/.scripts); do
+                             if [ "$AUDMOD" == "$MODNAME.sh" ]; then
                                [ "$MODNAME" == "ainur_sauron" ] && LIBDIR="$(dirname $(find $MODDIR/$MODNAME/system -type f -name "libbundlewrapper.so" | head -n 1) | sed -e "s|$MODDIR/$MODNAME||" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
                                . $INSTALLER/mods/$AUDMOD
+                               break
                              else
                                LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
                                UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
                                if [ "$(sed -n "/^libraries {/,/^}/ {/$LIB.so/p}" $FILE)" ] && [ "$(sed -n "/^effects {/,/^}/ {/uuid $UUID/p}" $FILE)" ] && [ "$(find $MODDIR/$MODNAME/system -type f -name "$LIB.so")" ]; then
                                  LIBDIR="$(dirname $(find $MODDIR/$MODNAME/system -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MODDIR/$MODNAME||" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
                                  . $INSTALLER/mods/$AUDMOD
+                                 break
                                fi
                              fi
                            done;;
-          *audio_effects*.xml) if [ "$AUDMOD" == "$MODNAME" ]; then
-                                 [ "$MODNAME" == "ainur_sauron" ] && LIBDIR="$(dirname $(find $MODDIR/$MODNAME/system -type f -name "libbundlewrapper.so" | head -n 1) | sed -e "s|$MODDIR/$MODNAME||" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
-                                 . $INSTALLER/mods/$AUDMOD
-                               else
-                                 for AUDMOD in $(ls $INSTALLER/mods); do
-                                 LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
-                                 UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
-                                 if [ "$(sed -n "/<libraries>/,/<\/libraries>/ {/path=\"$LIB.so\"/p}" $FILE)" ] && [ "$(sed -n "/<effects>/,/<\/effects>/ {/uuid=\"$UUID\"/p}" $FILE)" ] && [ "$(find $MOD -type f -name "$LIB.so")" ]; then
-                                   LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
+          *audio_effects*.xml) for AUDMOD in $(ls $MODPATH/.scripts); do
+                                 if [ "$AUDMOD" == "$MODNAME.sh" ]; then
+                                   [ "$MODNAME" == "ainur_sauron" ] && LIBDIR="$(dirname $(find $MODDIR/$MODNAME/system -type f -name "libbundlewrapper.so" | head -n 1) | sed -e "s|$MODDIR/$MODNAME||" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
                                    . $INSTALLER/mods/$AUDMOD
+                                   break
+                                 else
+                                   LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
+                                   UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
+                                   if [ "$(sed -n "/<libraries>/,/<\/libraries>/ {/path=\"$LIB.so\"/p}" $FILE)" ] && [ "$(sed -n "/<effects>/,/<\/effects>/ {/uuid=\"$UUID\"/p}" $FILE)" ] && [ "$(find $MOD -type f -name "$LIB.so")" ]; then
+                                     LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
+                                     . $INSTALLER/mods/$AUDMOD
+                                     break
+                                   fi
                                  fi
-                               fi
-                           done;;
+                               done;;
         esac
         $LAST && cp_mv -m $FILE $COREPATH/aml/mods/$MODNAME/$NAME
       done
