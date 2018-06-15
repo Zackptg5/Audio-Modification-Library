@@ -2,6 +2,9 @@
 AudModLib is a compatibility framework that allows the seamless integration of multiple audio mods for Magisk installs. [More details in support thread](https://forum.xda-developers.com/apps/magisk/mod-audio-modification-library-t3745466).
 
 ## Change Log
+### v1.6.2 - 6.15.2018
+* Fixed mixed up libraries/effects
+
 ### v1.6.1 - 6.15.2018
 * Bug fixes for xml files
 

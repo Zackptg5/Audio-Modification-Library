@@ -9,19 +9,19 @@ case $PRINTED in
   *41d3c987-e6cf-11e3-a88a-11aba5d5c51b*) ;;
   *) ui_print "    Found V4A Materialized! Patching...";;
 esac
-patch_cfgs $MODPATH/$NAME v4a_fx 41d3c987-e6cf-11e3-a88a-11aba5d5c51b v4a_standard_fx $LIBDIR/libv4a_fx.so
+patch_cfgs $MODPATH/$NAME v4a_standard_fx 41d3c987-e6cf-11e3-a88a-11aba5d5c51b v4a_fx $LIBDIR/libv4a_fx.so
 #libv4a_fx_ics~41d3c987-e6cf-11e3-a88a-11aba5d5c51b
 case $PRINTED in 
   *41d3c987-e6cf-11e3-a88a-11aba5d5c51b*) ;;
   *) ui_print "    Found V4AFX! Patching...";;
 esac
-patch_cfgs $MODPATH/$NAME v4a_fx 41d3c987-e6cf-11e3-a88a-11aba5d5c51b v4a_standard_fx $LIBDIR/libv4a_fx_ics.so 
+patch_cfgs $MODPATH/$NAME v4a_standard_fx 41d3c987-e6cf-11e3-a88a-11aba5d5c51b v4a_fx $LIBDIR/libv4a_fx_ics.so 
 #libv4a_xhifi_ics~d92c3a90-3e26-11e2-a25f-0800200c9a66
 case $PRINTED in
   *d92c3a90-3e26-11e2-a25f-0800200c9a66*) ;;
   *) ui_print "    Found V4A XHifi! Patching...";;
 esac
-patch_cfgs $MODPATH/$NAME v4a_xhifi d92c3a90-3e26-11e2-a25f-0800200c9a66 v4a_standard_xhifi $LIBDIR/libv4a_xhifi_ics.so
+patch_cfgs $MODPATH/$NAME v4a_standard_xhifi d92c3a90-3e26-11e2-a25f-0800200c9a66 v4a_xhifi $LIBDIR/libv4a_xhifi_ics.so
 #libswdax~9d4921da-8225-4f29-aefa-6e6f69726861
 case $PRINTED in 
   *9d4921da-8225-4f29-aefa-6e6f69726861*) ;;
@@ -49,7 +49,7 @@ case $PRINTED in
   *9d4921da-8225-4f29-aefa-39537a04bcaa*) ;;
   *) ui_print "    Found Dolby Digital Plus! Patching...";;
 esac
-patch_cfgs $MODPATH/$NAME ds 9d4921da-8225-4f29-aefa-39537a04bcaa dsplus $LIBDIR/libdseffect.so
+patch_cfgs $MODPATH/$NAME dsplus 9d4921da-8225-4f29-aefa-39537a04bcaa ds $LIBDIR/libdseffect.so
 #libswvlldp~3783c334-d3a0-4d13-874f-0032e5fb80e2
 case $PRINTED in 
   *3783c334-d3a0-4d13-874f-0032e5fb80e2*) ;;
@@ -67,27 +67,27 @@ case $PRINTED in
      fi;;
 esac
 patch_cfgs -l $MODPATH/$NAME icepower $LIBDIR/libicepower.so
-patch_cfgs -e $MODPATH/$NAME icepower f1c02420-777f-11e3-981f-0800200c9a66 icepower_algo
+patch_cfgs -e $MODPATH/$NAME icepower_algo f1c02420-777f-11e3-981f-0800200c9a66 icepower
 if [ "$MODNAME" != "IceWizard" ]; then
-  patch_cfgs -e $MODPATH/$NAME icepower e5456320-5391-11e3-8f96-0800200c9a66 icepower_test
-  patch_cfgs -e $MODPATH/$NAME icepower bf51a790-512b-11e3-8f96-0800200c9a66 icepower_load
-  patch_cfgs -e $MODPATH/$NAME icepower 63509430-52aa-11e3-8f96-0800200c9a66 icepower_null
-  patch_cfgs -e $MODPATH/$NAME icepower 50dbef80-4ad4-11e3-8f96-0800200c9a66 icepower_eq
+  patch_cfgs -e $MODPATH/$NAME icepower_test e5456320-5391-11e3-8f96-0800200c9a66 icepower
+  patch_cfgs -e $MODPATH/$NAME icepower_load bf51a790-512b-11e3-8f96-0800200c9a66 icepower
+  patch_cfgs -e $MODPATH/$NAME icepower_null 63509430-52aa-11e3-8f96-0800200c9a66 icepower
+  patch_cfgs -e $MODPATH/$NAME icepower_eq 50dbef80-4ad4-11e3-8f96-0800200c9a66 icepower
 fi
 #libarkamys~17852d50-161e-11e2-892e-0800200c9a66
 case $PRINTED in 
   *17852d50-161e-11e2-892e-0800200c9a66*) ;;
   *) ui_print "    Found Arkamys! Patching...";;
 esac
-patch_cfgs -ole $MODPATH/$NAME music arkamys 17852d50-161e-11e2-892e-0800200c9a66 Arkamysfx $LIBDIR/libarkamys.so
+patch_cfgs -ole $MODPATH/$NAME music Arkamysfx 17852d50-161e-11e2-892e-0800200c9a66 arkamys $LIBDIR/libarkamys.so
 #libdirac~4c6383e0-ff7d-11e0-b6d8-0002a5d5c51b
 case $PRINTED in 
   *4c6383e0-ff7d-11e0-b6d8-0002a5d5c51b*) ;;
   *) ui_print "    Found Dirac! Patching...";;
 esac
 patch_cfgs $MODPATH/$NAME dirac 4c6383e0-ff7d-11e0-b6d8-0002a5d5c51b dirac $LIBDIR/libdirac.so
-patch_cfgs -e $MODPATH/$NAME dirac b437f4de-da28-449b-9673-667f8b9643fe dirac_controller
-patch_cfgs -e $MODPATH/$NAME dirac b437f4de-da28-449b-9673-667f8b964304 dirac_music
+patch_cfgs -e $MODPATH/$NAME dirac_controller b437f4de-da28-449b-9673-667f8b9643fe dirac
+patch_cfgs -e $MODPATH/$NAME dirac_music b437f4de-da28-449b-9673-667f8b964304 dirac
 #libdirac~e069d9e0-8329-11df-9168-0002a5d5c51b
 case $PRINTED in
   *e069d9e0-8329-11df-9168-0002a5d5c51b*) ;;
@@ -99,7 +99,7 @@ case $PRINTED in
   *f27317f4-c984-4de6-9a90-545759495bf2*) ;;
   *) ui_print "    Found JamesDSP! Patching...";;
 esac
-patch_cfgs $MODPATH/$NAME jdsp f27317f4-c984-4de6-9a90-545759495bf2 jamesdsp $LIBDIR/libjamesdsp.so
+patch_cfgs $MODPATH/$NAME jamesdsp f27317f4-c984-4de6-9a90-545759495bf2 jdsp $LIBDIR/libjamesdsp.so
 #libmaxxeffect-cembedded~ae12da60-99ac-11df-b456-0002a5d5c51b
 case $PRINTED in 
   *ae12da60-99ac-11df-b456-0002a5d5c51b*) ;;
