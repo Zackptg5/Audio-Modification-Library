@@ -55,6 +55,10 @@ patch_cfgs() {
     esac
   done
   file=$1; shift
+  case "$file" in
+    *audio_effects*);;
+    *) break;;
+  esac
   $first && { lib=true; effect=true; }
   if $proxy; then
     effname=$1; shift
@@ -142,19 +146,22 @@ main() {
       [ -z "$FILES" ] && continue
       MODNAME=$(basename $(dirname $MOD))
       $LAST && [ ! "$(grep "$MODNAME" $COREPATH/aml/mods/modlist)" ] && echo "$MODNAME" >> $COREPATH/aml/mods/modlist
+      [ "$MODNAME" == "ainur_sauron" ] && LIBDIR="$(dirname $(find $MOD -type f -name "libbundlewrapper.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"      
       if [ -f "$(dirname $MOD)/.aml.sh" ]; then
         case $(sed -n 1p $(dirname $MOD)/.aml.sh) in
-          \#*~*.sh) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|"); cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|");;
-          *) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$MODNAME.sh; cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$MODNAME.sh;;
+          \#*~*.sh) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")
+                    cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")
+                    [ "$(sed -n "/RUNONCE=true/p" $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|"))" ] && { (. $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")) || { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; }; continue; };;
+          *) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$MODNAME.sh
+             cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$MODNAME.sh
+             [ "$(sed -n "/RUNONCE=true/p" $INSTALLER/mods/$MODNAME.sh)" ] && { (. $INSTALLER/mods/$MODNAME.sh) || { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; }; continue; };;
         esac
       fi
-      [ "$MODNAME" == "acp" ] && { . $INSTALLER/mods/acp.sh; continue; }
       for FILE in ${FILES}; do
         NAME=$(echo "$FILE" | sed "s|$MOD|system|")
         case $FILE in
           *audio_effects*.conf) for AUDMOD in $(ls $MODPATH/.scripts); do
                              if [ "$AUDMOD" == "$MODNAME.sh" ]; then
-                               [ "$MODNAME" == "ainur_sauron" ] && LIBDIR="$(dirname $(find $MODDIR/$MODNAME/system -type f -name "libbundlewrapper.so" | head -n 1) | sed -e "s|$MODDIR/$MODNAME||" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
                                . $INSTALLER/mods/$AUDMOD
                                break
                              else
@@ -169,7 +176,6 @@ main() {
                            done;;
           *audio_effects*.xml) for AUDMOD in $(ls $MODPATH/.scripts); do
                                  if [ "$AUDMOD" == "$MODNAME.sh" ]; then
-                                   [ "$MODNAME" == "ainur_sauron" ] && LIBDIR="$(dirname $(find $MODDIR/$MODNAME/system -type f -name "libbundlewrapper.so" | head -n 1) | sed -e "s|$MODDIR/$MODNAME||" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
                                    . $INSTALLER/mods/$AUDMOD
                                    break
                                  else
