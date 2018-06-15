@@ -148,6 +148,7 @@ main() {
           *) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$MODNAME.sh; cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$MODNAME.sh;;
         esac
       fi
+      [ "$MODNAME" == "acp" ] && { . $INSTALLER/mods/acp.sh; continue; }
       for FILE in ${FILES}; do
         NAME=$(echo "$FILE" | sed "s|$MOD|system|")
         case $FILE in
