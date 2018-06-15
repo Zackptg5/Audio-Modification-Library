@@ -4,6 +4,7 @@ AudModLib is a compatibility framework that allows the seamless integration of m
 ## Change Log
 ### v1.6.2 - 6.15.2018
 * Fixed mixed up libraries/effects
+* Fixed bug with acp
 
 ### v1.6.1 - 6.15.2018
 * Bug fixes for xml files
