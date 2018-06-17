@@ -4,7 +4,11 @@ AudModLib is a compatibility framework that allows the seamless integration of m
 ## Change Log
 ### v1.7 - x.xx.2018
 * Added support for mixer_gains, audio_device, and sapa_feature xml files
-* Added COUNT variable. Can be used by custom AML scripts to determine how many times script has been run. Use this if your mod has other audio file patches than just cfgs
+* Added 'RUNONCE' option for custom AML scripts - allows them to only be run once instead of for each audio cfg file. Use this if your mod doesn't have cfg patches
+* Added COUNT variable. Can be used by custom AML scripts to determine how many times script has been run. Use this if your mod has cfg patches and other audio file patches
+* Fixed old bug with uninstall file restoration
+* Fixed bugs with boot script
+* Removed need to specify file with patch_cfgs function - make sure you update your aml.sh script for this
 
 ### v1.6.2 - 6.15.2018
 * Fixed mixed up libraries/effects

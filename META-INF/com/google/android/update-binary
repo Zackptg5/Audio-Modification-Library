@@ -158,10 +158,12 @@ patch_cfgs() {
       *) return 1;;
     esac
   done
-  file=$1; shift
-  case "$file" in
-    *audio_effects*);;
-    *) break;;
+  case $1 in
+    *.conf|*.xml) case $1 in
+                    *audio_effects*) file=$1; shift;;
+                    *) return;;
+                  esac;;
+    *) file=$MODPATH/$NAME;;
   esac
   $first && { lib=true; effect=true; }
   if $proxy; then
@@ -292,14 +294,16 @@ installmod() {
         # Use .aml.sh script included in module
         case $(sed -n 1p $(dirname $MOD)/.aml.sh) in
           \#*~*.sh) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")
-                    cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|");;
+                    cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")
+                    [ "$(sed -n "/RUNONCE=true/p" $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|"))" ] && RUNONCE=true;;
           *) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$MODNAME.sh
-             cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$MODNAME.sh;;
+             cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$MODNAME.sh
+             [ "$(sed -n "/RUNONCE=true/p" $INSTALLER/mods/$MODNAME.sh)" ] && RUNONCE=true;;
         esac
       fi
       for FILE in ${FILES}; do
         NAME=$(echo "$FILE" | sed "s|$MOD|system|")
-        case $FILE in
+        $RUNONCE || case $FILE in
           *audio_effects*.conf) for AUDMOD in $(ls $INSTALLER/mods); do
                                   if [ "$AUDMOD" == "$MODNAME.sh" ]; then
                                     (. $INSTALLER/mods/$AUDMOD) || { [ -z "$PRINTED" ] && { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; } }
@@ -450,6 +454,9 @@ fi
 
 # Remove old aml & mods
 [ -f "$OLD_AML_VER" ] && remove_old_aml
+
+# Set Vars
+RUNONCE=false
 
 # Detect aml version and act accordingly
 if [ -f "$MOD_VER" ]; then

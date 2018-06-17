@@ -11,6 +11,7 @@ COREPATH=$(dirname $MODPATH)/.core
 REMPATCH=false
 NEWPATCH=false
 OREONEW=false
+RUNONCE=false
 MODS=""
 
 #Functions
@@ -54,10 +55,12 @@ patch_cfgs() {
       *) return 1;;
     esac
   done
-  file=$1; shift
-  case "$file" in
-    *audio_effects*);;
-    *) break;;
+  case $1 in
+    *.conf|*.xml) case $1 in
+                    *audio_effects*) file=$1; shift;;
+                    *) return;;
+                  esac;;
+    *) file=$MODPATH/$NAME;;
   esac
   $first && { lib=true; effect=true; }
   if $proxy; then
@@ -151,33 +154,33 @@ main() {
       if [ -f "$(dirname $MOD)/.aml.sh" ]; then
         case $(sed -n 1p $(dirname $MOD)/.aml.sh) in
           \#*~*.sh) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")
-                    cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|");;
+                    [ "$(sed -n "/RUNONCE=true/p" $MODPATH/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|"))" ] && RUNONCE=true;;
           *) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$MODNAME.sh
-             cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$MODNAME.sh;;
+             [ "$(sed -n "/RUNONCE=true/p" $MODPATH/mods/$MODNAME.sh)" ] && RUNONCE=true;;
         esac
       fi
       for FILE in ${FILES}; do
         NAME=$(echo "$FILE" | sed "s|$MOD|system|")
-        case $FILE in
+        $RUNONCE || case $FILE in
           *audio_effects*.conf) for AUDMOD in $(ls $MODPATH/.scripts); do
-                             if [ "$AUDMOD" == "$MODNAME.sh" ]; then
-                               . $INSTALLER/mods/$AUDMOD
-                               COUNT=$(($COUNT + 1))
-                               break
-                             else
-                               LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
-                               UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
-                               if [ "$(sed -n "/^libraries {/,/^}/ {/$LIB.so/p}" $FILE)" ] && [ "$(sed -n "/^effects {/,/^}/ {/uuid $UUID/p}" $FILE)" ] && [ "$(find $MODDIR/$MODNAME/system -type f -name "$LIB.so")" ]; then
-                                 LIBDIR="$(dirname $(find $MODDIR/$MODNAME/system -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MODDIR/$MODNAME||" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
-                                 . $INSTALLER/mods/$AUDMOD
-                                 COUNT=$(($COUNT + 1))
-                                 break
-                               fi
-                             fi
-                           done;;
+                                  if [ "$AUDMOD" == "$MODNAME.sh" ]; then
+                                    . $MODPATH/.scripts/$AUDMOD
+                                    COUNT=$(($COUNT + 1))
+                                    break
+                                  else
+                                    LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
+                                    UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
+                                    if [ "$(sed -n "/^libraries {/,/^}/ {/$LIB.so/p}" $FILE)" ] && [ "$(sed -n "/^effects {/,/^}/ {/uuid $UUID/p}" $FILE)" ] && [ "$(find $MODDIR/$MODNAME/system -type f -name "$LIB.so")" ]; then
+                                      LIBDIR="$(dirname $(find $MODDIR/$MODNAME/system -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MODDIR/$MODNAME||" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
+                                      . $MODPATH/.scripts/$AUDMOD
+                                      COUNT=$(($COUNT + 1))
+                                      break
+                                    fi
+                                  fi
+                                done;;
           *audio_effects*.xml) for AUDMOD in $(ls $MODPATH/.scripts); do
                                  if [ "$AUDMOD" == "$MODNAME.sh" ]; then
-                                   . $INSTALLER/mods/$AUDMOD
+                                   . $MODPATH/.scripts/$AUDMOD
                                    COUNT=$(($COUNT + 1))
                                    break
                                  else
@@ -185,7 +188,7 @@ main() {
                                    UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
                                    if [ "$(sed -n "/<libraries>/,/<\/libraries>/ {/path=\"$LIB.so\"/p}" $FILE)" ] && [ "$(sed -n "/<effects>/,/<\/effects>/ {/uuid=\"$UUID\"/p}" $FILE)" ] && [ "$(find $MOD -type f -name "$LIB.so")" ]; then
                                      LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
-                                     . $INSTALLER/mods/$AUDMOD
+                                     . $MODPATH/.scripts/$AUDMOD
                                      COUNT=$(($COUNT + 1))
                                      break
                                    fi
