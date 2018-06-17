@@ -9,6 +9,7 @@ AudModLib is a compatibility framework that allows the seamless integration of m
 * Fixed old bug with uninstall file restoration
 * Fixed bugs with boot script
 * Removed need to specify file with patch_cfgs function - make sure you update your aml.sh script for this
+* Added ainur squaresound
 
 ### v1.6.2 - 6.15.2018
 * Fixed mixed up libraries/effects
