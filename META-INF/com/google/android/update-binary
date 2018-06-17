@@ -292,11 +292,9 @@ installmod() {
         # Use .aml.sh script included in module
         case $(sed -n 1p $(dirname $MOD)/.aml.sh) in
           \#*~*.sh) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")
-                    cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")
-                    [ "$(sed -n "/RUNONCE=true/p" $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|"))" ] && { (. $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")) || { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; }; continue; };;
+                    cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|");;
           *) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$MODNAME.sh
-             cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$MODNAME.sh
-             [ "$(sed -n "/RUNONCE=true/p" $INSTALLER/mods/$MODNAME.sh)" ] && { (. $INSTALLER/mods/$MODNAME.sh) || { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; }; continue; };;
+             cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$MODNAME.sh;;
         esac
       fi
       for FILE in ${FILES}; do
@@ -417,7 +415,11 @@ uninstallmod() {
   [ -f $COREPATH/aml/mods/modlist ] && {
   if [ -s $COREPATH/aml/mods/modlist ]; then
     while read LINE; do
-      [ -d $MODDIR/$LINE -a ! -f "$MODDIR/$LINE/update" ] && { for FILE in $(find $COREPATH/aml/mods/$LINE -type f); do
+      if $BOOTMODE && [ -d $MOUNTPATH/$LINE ]; then
+        [ "$(find $MOUNTPATH/$LINE -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml"  -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml"| head -n 1)" ] && continue
+        MODDIR=$MOUNTPATH
+      fi
+      [ -d $MODDIR/$LINE ] && { for FILE in $(find $COREPATH/aml/mods/$LINE -type f); do
         NAME=$(echo "$FILE" | sed "s|$COREPATH/aml/mods/||")
         cp_mv -m $FILE $MODDIR/$NAME
       done; }

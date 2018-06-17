@@ -151,11 +151,9 @@ main() {
       if [ -f "$(dirname $MOD)/.aml.sh" ]; then
         case $(sed -n 1p $(dirname $MOD)/.aml.sh) in
           \#*~*.sh) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")
-                    cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")
-                    [ "$(sed -n "/RUNONCE=true/p" $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|"))" ] && { (. $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")) || { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; }; continue; };;
+                    cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|");;
           *) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$MODNAME.sh
-             cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$MODNAME.sh
-             [ "$(sed -n "/RUNONCE=true/p" $INSTALLER/mods/$MODNAME.sh)" ] && { (. $INSTALLER/mods/$MODNAME.sh) || { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; }; continue; };;
+             cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$MODNAME.sh;;
         esac
       fi
       for FILE in ${FILES}; do
