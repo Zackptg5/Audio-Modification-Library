@@ -281,6 +281,7 @@ installmod() {
   if $BOOTMODE; then MODS="$(find /sbin/.core/img/*/system $MOUNTPATH/*/system -maxdepth 0 -type d)"; else MODS="$(find $MOUNTPATH/*/system -maxdepth 0 -type d)"; fi
   if [ "$MODS" ]; then
     for MOD in ${MODS}; do
+      RUNONCE=false
       [ "$MOD" == "$MODPATH/system" ] && continue
       FILES=$(find $MOD -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml")
       [ -z "$FILES" ] && continue
@@ -295,10 +296,10 @@ installmod() {
         case $(sed -n 1p $(dirname $MOD)/.aml.sh) in
           \#*~*.sh) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")
                     cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")
-                    [ "$(sed -n "/RUNONCE=true/p" $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|"))" ] && RUNONCE=true;;
+                    [ "$(sed -n "/RUNONCE=true/p" $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|"))" ] && . $INSTALLER/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|");;
           *) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$MODNAME.sh
              cp -f $(dirname $MOD)/.aml.sh $INSTALLER/mods/$MODNAME.sh
-             [ "$(sed -n "/RUNONCE=true/p" $INSTALLER/mods/$MODNAME.sh)" ] && RUNONCE=true;;
+             [ "$(sed -n "/RUNONCE=true/p" $INSTALLER/mods/$MODNAME.sh)" ] && . $INSTALLER/mods/$MODNAME.sh;;
         esac
       fi
       for FILE in ${FILES}; do
@@ -454,9 +455,6 @@ fi
 
 # Remove old aml & mods
 [ -f "$OLD_AML_VER" ] && remove_old_aml
-
-# Set Vars
-RUNONCE=false
 
 # Detect aml version and act accordingly
 if [ -f "$MOD_VER" ]; then

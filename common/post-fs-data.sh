@@ -11,7 +11,6 @@ COREPATH=$(dirname $MODPATH)/.core
 REMPATCH=false
 NEWPATCH=false
 OREONEW=false
-RUNONCE=false
 MODS=""
 
 #Functions
@@ -144,6 +143,7 @@ main() {
     [ "$1" == "$MODDIR/*/system" -o $NUM -ne 1 ] && LAST=true
     [ $NUM -ne 1 ] && DIR=$MODDIR/*/system
     for MOD in $(find $DIR -maxdepth 0 -type d); do
+      RUNONCE=false
       $LAST && [ "$MOD" == "$MODPATH/system" ] && continue
       FILES=$(find $MOD -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml")
       [ -z "$FILES" ] && continue
@@ -154,9 +154,9 @@ main() {
       if [ -f "$(dirname $MOD)/.aml.sh" ]; then
         case $(sed -n 1p $(dirname $MOD)/.aml.sh) in
           \#*~*.sh) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")
-                    [ "$(sed -n "/RUNONCE=true/p" $MODPATH/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|"))" ] && RUNONCE=true;;
+                    [ "$(sed -n "/RUNONCE=true/p" $MODPATH/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|"))" ] && . $MODPATH/.scripts/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|");;
           *) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$MODNAME.sh
-             [ "$(sed -n "/RUNONCE=true/p" $MODPATH/mods/$MODNAME.sh)" ] && RUNONCE=true;;
+             [ "$(sed -n "/RUNONCE=true/p" $MODPATH/mods/$MODNAME.sh)" ] && . $MODPATH/.scripts/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|");;
         esac
       fi
       for FILE in ${FILES}; do
