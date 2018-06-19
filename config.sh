@@ -51,7 +51,7 @@ LATESTARTSERVICE=false
 print_modname() {
   ui_print "*******************************"
   ui_print "   Audio Modification Library  "
-  ui_print "      (Ahrion, Zackptg5)       "
+  ui_print "      (Zackptg5, Ahrion)       "
   ui_print "*******************************"
 }
 
