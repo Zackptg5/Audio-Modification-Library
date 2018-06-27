@@ -272,8 +272,8 @@ installmod() {
     done
   fi
   # Comment out music_helper and sa3d (samsung equivalent)
-  for FILE in $MODPATH/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf $MODPATH/system/etc/audio_effects.xml $MODPATH/system/vendor/etc/audio_effects.xml; do
-    [ -f $FILE ] && osp_detect $FILE
+  for FILE in $(find $MODPATH/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml"); do
+    osp_detect $FILE
   done
   # Search magisk img for any audio mods and move relevant files (confs/pols/mixs/props) to non-mounting directory
   # Patch common aml files for each audio mod found

@@ -243,8 +243,8 @@ if $REMPATCH; then
     NAME=$(echo "$FILE" | sed -e "s|/sbin/.core/mirror||" -e "s|/system/||")
     cp_mv -c $FILE $MODPATH/system/$NAME
   done
-  for FILE in $MODPATH/system/etc/audio_effects.conf $MODPATH/system/vendor/etc/audio_effects.conf $MODPATH/system/etc/audio_effects.xml $MODPATH/system/vendor/etc/audio_effects.xml; do
-    [ -f $FILE ] && osp_detect $FILE
+  for FILE in $(find $MODPATH/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml"); do
+    osp_detect $FILE
   done
   main "$COREPATH/aml/mods/*/system"
 elif $NEWPATCH; then
