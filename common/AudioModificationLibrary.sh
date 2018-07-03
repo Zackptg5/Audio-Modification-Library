@@ -68,12 +68,10 @@ case $PRINTED in
 esac
 patch_cfgs -l icepower $LIBDIR/libicepower.so
 patch_cfgs -e icepower_algo f1c02420-777f-11e3-981f-0800200c9a66 icepower
-if [ "$MODNAME" != "IceWizard" ]; then
-  patch_cfgs -e icepower_test e5456320-5391-11e3-8f96-0800200c9a66 icepower
-  patch_cfgs -e icepower_load bf51a790-512b-11e3-8f96-0800200c9a66 icepower
-  patch_cfgs -e icepower_null 63509430-52aa-11e3-8f96-0800200c9a66 icepower
-  patch_cfgs -e icepower_eq 50dbef80-4ad4-11e3-8f96-0800200c9a66 icepower
-fi
+patch_cfgs -e icepower_test e5456320-5391-11e3-8f96-0800200c9a66 icepower
+patch_cfgs -e icepower_load bf51a790-512b-11e3-8f96-0800200c9a66 icepower
+patch_cfgs -e icepower_null 63509430-52aa-11e3-8f96-0800200c9a66 icepower
+[ "$MODNAME" != "IceWizard" ] && patch_cfgs -e icepower_eq 50dbef80-4ad4-11e3-8f96-0800200c9a66 icepower
 #libarkamys~17852d50-161e-11e2-892e-0800200c9a66
 case $PRINTED in 
   *17852d50-161e-11e2-892e-0800200c9a66*) ;;
