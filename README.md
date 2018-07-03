@@ -4,6 +4,7 @@ AudModLib is a compatibility framework that allows the seamless integration of m
 ## Change Log
 ### v1.7.2 - 7.xx.2018
 * Updated ice wizard patches
+* Delete osp rather than comment out
 
 ### v1.7.1 - 6.27.2018
 * Bug fix with osp_detect - should patch all cfgs now
