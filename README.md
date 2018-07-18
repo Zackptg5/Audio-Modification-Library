@@ -3,7 +3,7 @@ AudModLib is a compatibility framework that allows the seamless integration of m
 
 ## Change Log
 ### v1.8 - 7.xx.2018
-* Have patch_cfgs function always return true, should eliminate false error messages
+* Fix icewizard always showing error
 * Add capability to replace libraries and effects with patch_cfgs function (-r)
 * Change pre_processing patch_cfgs option to -q
 * Fix bug with proxy effects

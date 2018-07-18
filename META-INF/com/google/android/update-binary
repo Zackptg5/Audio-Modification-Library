@@ -270,6 +270,7 @@ installmod() {
       \#*) if [ -z $TMP ]; then
              TMP=1;
            else
+             echo "return 0" >> $INSTALLER/mods/$UUID.sh
              echo " " >> $INSTALLER/mods/$UUID.sh
              cp_mv -c $INSTALLER/mods/$UUID.sh $MODPATH/.scripts/$UUID.sh
              sed -i "/case \$PRINTED in/,/esac/d" $MODPATH/.scripts/$UUID.sh
