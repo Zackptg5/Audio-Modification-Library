@@ -231,6 +231,7 @@ patch_cfgs() {
       fi
     fi;;
   esac
+  return 0
 }
 installmod() {
   ui_print "- Installing Audio Modification Library"
