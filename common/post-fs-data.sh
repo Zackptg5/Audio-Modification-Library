@@ -149,7 +149,6 @@ patch_cfgs() {
       fi
     fi;;
   esac
-  return 0
 }
 grep_prop() {
   REGEX="s/^$1=//p"

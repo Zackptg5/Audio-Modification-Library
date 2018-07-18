@@ -253,7 +253,6 @@ patch_cfgs() {
       fi
     fi;;
   esac
-  return 0
 }
 installmod() {
   ui_print "- Installing Audio Modification Library"
@@ -330,7 +329,7 @@ installmod() {
         $RUNONCE || case $FILE in
           *audio_effects*.conf) for AUDMOD in $(ls $INSTALLER/mods); do
                                   if [ "$AUDMOD" == "$MODNAME.sh" ]; then
-                                    (. $INSTALLER/mods/$AUDMOD) || { [ -z "$PRINTED" ] && { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; } }
+                                    (. $INSTALLER/mods/$AUDMOD) || { [ -z "$PRINTED" ] && { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; }; }
                                     COUNT=$(($COUNT + 1))
                                     break
                                   else
@@ -338,7 +337,7 @@ installmod() {
                                     UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
                                     if [ "$(sed -n "/^libraries {/,/^}/ {/$LIB.so/p}" $FILE)" ] && [ "$(sed -n "/^effects {/,/^}/ {/uuid $UUID/p}" $FILE)" ] && [ "$(find $MOD -type f -name "$LIB.so")" ]; then
                                       LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
-                                      (. $INSTALLER/mods/$AUDMOD) || { [ -z "$PRINTED" ] && { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; } }
+                                      (. $INSTALLER/mods/$AUDMOD) || { [ -z "$PRINTED" ] && { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; }; }
                                       COUNT=$(($COUNT + 1))
                                       PRINTED="${PRINTED} $UUID"
                                       break
@@ -347,7 +346,7 @@ installmod() {
                                 done;;
           *audio_effects*.xml) for AUDMOD in $(ls $INSTALLER/mods); do
                                  if [ "$AUDMOD" == "$MODNAME.sh" ]; then
-                                   (. $INSTALLER/mods/$AUDMOD) || { [ -z "$PRINTED" ] && { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; } }
+                                   (. $INSTALLER/mods/$AUDMOD) || { [ -z "$PRINTED" ] && { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; }; }
                                    COUNT=$(($COUNT + 1))
                                    break
                                  else
@@ -355,7 +354,7 @@ installmod() {
                                    UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
                                    if [ "$(sed -n "/<libraries>/,/<\/libraries>/ {/path=\"$LIB.so\"/p}" $FILE)" ] && [ "$(sed -n "/<effects>/,/<\/effects>/ {/uuid=\"$UUID\"/p}" $FILE)" ] && [ "$(find $MOD -type f -name "$LIB.so")" ]; then
                                      LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
-                                     (. $INSTALLER/mods/$AUDMOD) || { [ -z "$PRINTED" ] && { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; } }
+                                     (. $INSTALLER/mods/$AUDMOD) || { [ -z "$PRINTED" ] && { ui_print "   ! Error in script! Contact developer of mod!"; ui_print "   ! Remove that mod, then uninstall/reinstall aml!"; }; }
                                      COUNT=$(($COUNT + 1))
                                      PRINTED="${PRINTED} $UUID"
                                      break
