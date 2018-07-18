@@ -40,7 +40,7 @@ osp_detect() {
   esac
 }
 patch_cfgs() {
-  local first=true file lib=false effect=false outsp=false proxy=false libname libpath effname uid libname_sw uid_sw libname_hw uid_hw libpathsw libpathhw conf xml
+  local first=true file lib=false effect=false outsp=false proxy=false replace=false libname libpath effname uid libname_sw uid_sw libname_hw uid_hw libpathsw libpathhw conf xml
   local opt=`getopt :leopr "$@"`
   eval set -- "$opt"
   while true; do
@@ -48,8 +48,9 @@ patch_cfgs() {
       -l) lib=true; first=false; shift;;
       -e) effect=true; first=false; shift;;
       -o) outsp=true; conf=output_session_processing; xml=postprocess; first=false; shift;;
-      -r) outsp=true; conf=pre_processing; xml=preprocess; first=false; shift;;
+      -q) outsp=true; conf=pre_processing; xml=preprocess; first=false; shift;;
       -p) proxy=true; effect=false; outsp=false; first=false; shift;;
+      -r) replace=true; shift;;
       --) shift; break;;
       *) return 1;;
     esac
@@ -78,6 +79,10 @@ patch_cfgs() {
   case "$file" in
   *.conf)
     if $proxy; then
+      if $replace && [ "$(sed -n "/^effects {/,/^}/ {/^  $effname {/,/^  }/ {/uuid $uid_hw/p}}" $file)" ]; then
+        SPACES=$(sed -n "/^effects {/,/^}/ {/^ *$effname {/p}" $file | sed -r "s/( *).*/\1/")
+        sed -i "/^effects {/,/^}/ {/^$SPACES$effname {/,/^$SPACES}/d}" $file
+      fi
       [ ! "$(sed -n "/^effects {/,/^}/ {/^  $effname {/,/^  }/ {/uuid $uid_hw/p}}" $file)" ] && sed -i "s/^effects {/effects {\n  $effname {\n    library proxy\n    uuid 9d4921da-8225-4f29-aefa-6e6f69726861\n\n    libsw {\n      library $libname_sw\n      uuid $uid_sw\n    }\n\n    libhw {\n      library $libname_hw\n      uuid $uid_hw\n    }\n  }/g" $file
       if $lib; then
         patch_cfgs -l "$file" "proxy" "$LIBDIR/libeffectproxy.so"
@@ -87,9 +92,17 @@ patch_cfgs() {
       return
     fi
     if $lib; then
+      if $replace && [ "$(sed -n "/^libraries {/,/^}/ {/^ *$libname {/,/}/p}" $file)" ]; then
+        SPACES=$(sed -n "/^libraries {/,/^}/ {/^ *$libname {/p}" $file | sed -r "s/( *).*/\1/")
+        sed -i "/^libraries {/,/^}/ {/^$SPACES$libname {/,/^$SPACES}/d}" $file
+      fi
       [ ! "$(sed -n "/^libraries {/,/^}/ {/^ *$libname {/,/}/p}" $file)" ] && sed -i "s|^libraries {|libraries {\n  $libname {\n    path $libpath\n  }|" $file
     fi
     if $effect; then
+      if $replace && [ "$(sed -n "/^effects {/,/^}/ {/^ *$effname {/,/}/p}" $file)" ]; then
+        SPACES=$(sed -n "/^effects {/,/^}/ {/^ *$effname {/p}" $file | sed -r "s/( *).*/\1/")
+        sed -i "/^effects {/,/^}/ {/^$SPACES$effname {/,/^$SPACES}/d}" $file
+      fi
       [ ! "$(sed -n "/^effects {/,/^}/ {/^ *$effname {/,/}/p}" $file)" ] && sed -i "s|^effects {|effects {\n  $effname {\n    library $libname\n    uuid $uid\n  }|" $file
     fi
     if $outsp && [ "$API" -ge 26 ]; then
@@ -103,7 +116,10 @@ patch_cfgs() {
     fi;;
   *)
     if $proxy; then
-      [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/<effectProxy name=\"proxy\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">/,/<\/effectProxy>/ {/uuid=\"$uid_hw\"/}}" $file)" ] && sed -i -e "/<effects>/ a\        <effectProxy name=\"proxy\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">\n            <libsw library=\"$libname_sw\" uuid=\"$uid_sw\"\/>\n            <libhw library=\"$libname_hw\" uuid=\"$uid_hw\"\/>\n        <\/effectProxy>" $file
+      if $replace && [ "$(sed -n "/<effects>/,/<\/effects>/ {/<effectProxy name=\"$effname\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">/,/<\/effectProxy>/ {/uuid=\"$uid_hw\"/}}" $file)" ]; then
+        sed -i "/<effects>/,/<\/effects>/ {/<effectProxy name=\"$effname\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">/,/<\/effectProxy>/ {/uuid=\"$uid_hw\"/};d}" $file
+      fi
+      [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/<effectProxy name=\"$effname\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">/,/<\/effectProxy>/ {/uuid=\"$uid_hw\"/p}}" $file)" ] && sed -i -e "/<effects>/ a\        <effectProxy name=\"$effname\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">\n            <libsw library=\"$libname_sw\" uuid=\"$uid_sw\"\/>\n            <libhw library=\"$libname_hw\" uuid=\"$uid_hw\"\/>\n        <\/effectProxy>" $file
       if $lib; then
         patch_cfgs -l "$file" "proxy" "$LIBDIR/libeffectproxy.so"
         patch_cfgs -l "$file" "$libname_sw" "$libpathsw"
@@ -112,9 +128,15 @@ patch_cfgs() {
       return
     fi
     if $lib; then
+      if $replace && [ "$(sed -n "/<libraries>/,/<\/libraries>/ {/^ *<library name=\"$libname\" path=\"$(basename $libpath)\"\/>/p}" $file)" ]; then
+        sed -i "/<libraries>/,/<\/libraries>/ {/^ *<library name=\"$libname\" path=\"$(basename $libpath)\"\/>/d}" $file
+      fi
       [ ! "$(sed -n "/<libraries>/,/<\/libraries>/ {/^ *<library name=\"$libname\" path=\"$(basename $libpath)\"\/>/p}" $file)" ] && sed -i "/<libraries>/ a\        <library name=\"$libname\" path=\"$(basename $libpath)\"\/>" $file
     fi
     if $effect; then
+      if $replace && [ "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\" library=\"$libname\" uuid=\"$uid\"\/>/p}" $file)" ]; then
+        sed -i "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\" library=\"$libname\" uuid=\"$uid\"\/>/d}" $file
+      fi
       [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\" library=\"$libname\" uuid=\"$uid\"\/>/p}" $file)" ] && sed -i "/<effects>/ a\        <effect name=\"$effname\" library=\"$(basename $libname)\" uuid=\"$uid\"\/>" $file
     fi
     if $outsp && [ "$API" -ge 26 ]; then
@@ -127,6 +149,7 @@ patch_cfgs() {
       fi
     fi;;
   esac
+  return 0
 }
 grep_prop() {
   REGEX="s/^$1=//p"
@@ -150,7 +173,7 @@ main() {
       MODNAME=$(basename $(dirname $MOD))
       $LAST && [ ! "$(grep "$MODNAME" $COREPATH/aml/mods/modlist)" ] && echo "$MODNAME" >> $COREPATH/aml/mods/modlist
       COUNT=1
-      [ "$MODNAME" == "ainur_sauron" ] && LIBDIR="$(dirname $(find $MOD -type f -name "libbundlewrapper.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"      
+      [ "$MODNAME" == "ainur_sauron" ] && LIBDIR="$(dirname $(find $MOD -type f -name "libbundlewrapper.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
       if [ -f "$(dirname $MOD)/.aml.sh" ]; then
         case $(sed -n 1p $(dirname $MOD)/.aml.sh) in
           \#*~*.sh) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")
