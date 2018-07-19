@@ -35,7 +35,7 @@ osp_detect() {
             done;;
      *.xml) EFFECTS=$(sed -n "/^ *<postprocess>$/,/^ *<\/postprocess>$/ {/^ *<stream type=\"music\">$/,/^ *<\/stream>$/ {/<stream type=\"music\">/d; /<\/stream>/d; s/<apply effect=\"//g; s/\"\/>//g; p}}" $1)
             for EFFECT in ${EFFECTS}; do
-              [ "$EFFECT" != "atmos" ] && sed -i "s/^( *)<apply effect=\"$EFFECT\"\/>/d" $1
+              [ "$EFFECT" != "atmos" ] && sed -i "/^( *)<apply effect=\"$EFFECT\"\/>/d" $1
             done;;
   esac
 }
@@ -79,15 +79,20 @@ patch_cfgs() {
   case "$file" in
   *.conf)
     if $proxy; then
-      if $replace && [ "$(sed -n "/^effects {/,/^}/ {/^  $effname {/,/^  }/ {/uuid $uid_hw/p}}" $file)" ]; then
+      if $replace && [ "$(sed -n "/^effects {/,/^}/ {/^  $effname {/,/^  }/p}" $file)" ]; then
         SPACES=$(sed -n "/^effects {/,/^}/ {/^ *$effname {/p}" $file | sed -r "s/( *).*/\1/")
         sed -i "/^effects {/,/^}/ {/^$SPACES$effname {/,/^$SPACES}/d}" $file
       fi
-      [ ! "$(sed -n "/^effects {/,/^}/ {/^  $effname {/,/^  }/ {/uuid $uid_hw/p}}" $file)" ] && sed -i "s/^effects {/effects {\n  $effname {\n    library proxy\n    uuid 9d4921da-8225-4f29-aefa-6e6f69726861\n\n    libsw {\n      library $libname_sw\n      uuid $uid_sw\n    }\n\n    libhw {\n      library $libname_hw\n      uuid $uid_hw\n    }\n  }/g" $file
+      [ ! "$(sed -n "/^effects {/,/^}/ {/^  $effname {/,/^  }/p}" $file)" ] && sed -i "s/^effects {/effects {\n  $effname {\n    library proxy\n    uuid 9d4921da-8225-4f29-aefa-6e6f69726861\n\n    libsw {\n      library $libname_sw\n      uuid $uid_sw\n    }\n\n    libhw {\n      library $libname_hw\n      uuid $uid_hw\n    }\n  }/g" $file
       if $lib; then
         patch_cfgs -l "$file" "proxy" "$LIBDIR/libeffectproxy.so"
-        patch_cfgs -l "$file" "$libname_sw" "$libpathsw"
-        patch_cfgs -l "$file" "$libname_hw" "$libpathhw"
+        if $replace; then
+          patch_cfgs -rl "$file" "$libname_sw" "$libpathsw"
+          patch_cfgs -rl "$file" "$libname_hw" "$libpathhw"
+        else
+          patch_cfgs -l "$file" "$libname_sw" "$libpathsw"
+          patch_cfgs -l "$file" "$libname_hw" "$libpathhw"
+        fi
       fi
       return
     fi
@@ -114,16 +119,22 @@ patch_cfgs() {
         sed -i "/^$conf {/,/^}/ {/$type {/,/^    }/ s/$type {/$type {\n        $effname {\n        }/}" $file
       fi
     fi;;
-  *)
+  *.xml)
     if $proxy; then
-      if $replace && [ "$(sed -n "/<effects>/,/<\/effects>/ {/<effectProxy name=\"$effname\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">/,/<\/effectProxy>/ {/uuid=\"$uid_hw\"/}}" $file)" ]; then
-        sed -i "/<effects>/,/<\/effects>/ {/<effectProxy name=\"$effname\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">/,/<\/effectProxy>/ {/uuid=\"$uid_hw\"/};d}" $file
+      if $replace && [ "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/p}" $file)" -o "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*\/>/p}" $file)" ]; then
+        sed -i "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/d}" $file
+        sed -i "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*\/>/d}" $file
       fi
-      [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/<effectProxy name=\"$effname\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">/,/<\/effectProxy>/ {/uuid=\"$uid_hw\"/p}}" $file)" ] && sed -i -e "/<effects>/ a\        <effectProxy name=\"$effname\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">\n            <libsw library=\"$libname_sw\" uuid=\"$uid_sw\"\/>\n            <libhw library=\"$libname_hw\" uuid=\"$uid_hw\"\/>\n        <\/effectProxy>" $file
+      [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/p}" $file)" -a ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*>/,/^ *\/>/p}" $file)"] && sed -i -e "/<effects>/ a\        <effectProxy name=\"$effname\" library=\"proxy\" uuid=\"9d4921da-8225-4f29-aefa-6e6f69726861\">\n            <libsw library=\"$libname_sw\" uuid=\"$uid_sw\"\/>\n            <libhw library=\"$libname_hw\" uuid=\"$uid_hw\"\/>\n        <\/effectProxy>" $file
       if $lib; then
         patch_cfgs -l "$file" "proxy" "$LIBDIR/libeffectproxy.so"
-        patch_cfgs -l "$file" "$libname_sw" "$libpathsw"
-        patch_cfgs -l "$file" "$libname_hw" "$libpathhw"
+        if $replace; then
+          patch_cfgs -rl "$file" "$libname_sw" "$libpathsw"
+          patch_cfgs -rl "$file" "$libname_hw" "$libpathhw"
+        else
+          patch_cfgs -l "$file" "$libname_sw" "$libpathsw"
+          patch_cfgs -l "$file" "$libname_hw" "$libpathhw"
+        fi
       fi
       return
     fi
@@ -134,10 +145,11 @@ patch_cfgs() {
       [ ! "$(sed -n "/<libraries>/,/<\/libraries>/ {/^ *<library name=\"$libname\" path=\"$(basename $libpath)\"\/>/p}" $file)" ] && sed -i "/<libraries>/ a\        <library name=\"$libname\" path=\"$(basename $libpath)\"\/>" $file
     fi
     if $effect; then
-      if $replace && [ "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\" library=\"$libname\" uuid=\"$uid\"\/>/p}" $file)" ]; then
-        sed -i "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\" library=\"$libname\" uuid=\"$uid\"\/>/d}" $file
+      if $replace && [ "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*\/>/p}" $file)" -o "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/p}" $file)" ]; then
+        sed -i "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*\/>/d}" $file
+        sed -i "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/d}" $file
       fi
-      [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\" library=\"$libname\" uuid=\"$uid\"\/>/p}" $file)" ] && sed -i "/<effects>/ a\        <effect name=\"$effname\" library=\"$(basename $libname)\" uuid=\"$uid\"\/>" $file
+      [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*\/>/p}" $file)" ] && sed -i "/<effects>/ a\        <effect name=\"$effname\" library=\"$(basename $libname)\" uuid=\"$uid\"\/>" $file
     fi
     if $outsp && [ "$API" -ge 26 ]; then
       if [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/p" $file)" ]; then
