@@ -7,6 +7,7 @@ AudModLib is a compatibility framework that allows the seamless integration of m
 * Add capability to replace libraries and effects with patch_cfgs function (-r)
 * Change pre_processing patch_cfgs option to -q
 * Fix bug with proxy effects
+* Fix bug with osp with xml files
 
 ### v1.7.2 - 7.2.2018
 * Updated ice wizard patches
