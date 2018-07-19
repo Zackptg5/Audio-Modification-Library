@@ -104,7 +104,7 @@ case $PRINTED in
   *) ui_print "    Found MaxX Audio 3! Patching...";;
 esac
 patch_cfgs -ole music maxxaudio3 ae12da60-99ac-11df-b456-0002a5d5c51b maxxaudio3 $LIBDIR/libmaxxeffect-cembedded.so
-#libbassboostMz~850b6319-bf66-4f93-bec0-dc6964367786.sh
+#libbassboostMz~850b6319-bf66-4f93-bec0-dc6964367786
 case $PRINTED in
   *850b6319-bf66-4f93-bec0-dc6964367786*) ;;
   *) ui_print "    Found SquareSound! Patching...";;
