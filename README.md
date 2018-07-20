@@ -1,8 +1,8 @@
-# Audio Modification Library Template
+# Audio Modification Library
 AudModLib is a compatibility framework that allows the seamless integration of multiple audio mods for Magisk installs. [More details in support thread](https://forum.xda-developers.com/apps/magisk/mod-audio-modification-library-t3745466).
 
 ## Change Log
-### v1.8 - 7.xx.2018
+### v1.8 - 7.20.2018
 * Fix icewizard always showing error
 * Add capability to replace libraries and effects with patch_cfgs function (-r)
 * Change pre_processing patch_cfgs option to -q
