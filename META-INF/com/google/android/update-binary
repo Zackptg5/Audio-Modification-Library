@@ -5,14 +5,10 @@
 # by topjohnwu
 #
 ##########################################################################################
-
-# Detect whether in boot mode
-ps | grep zygote | grep -v grep >/dev/null && BOOTMODE=true || BOOTMODE=false
-$BOOTMODE || ps -A 2>/dev/null | grep zygote | grep -v grep >/dev/null && BOOTMODE=true
-
 TMPDIR=/dev/tmp
 INSTALLER=$TMPDIR/install
-MAGISKBIN=/data/adb/magisk
+# Always mount under tmp
+MOUNTPATH=$TMPDIR/magisk_img
 
 # Default permissions
 umask 022
@@ -40,15 +36,29 @@ ZIP=$3
 
 mount /data 2>/dev/null
 
-# Utility functions must exist
-[ -f $MAGISKBIN/util_functions.sh ] || require_new_magisk
 # Load utility functions
-. $MAGISKBIN/util_functions.sh
+if [ -f /data/adb/magisk/util_functions.sh ]; then
+  . /data/adb/magisk/util_functions.sh
+elif [ -f /data/magisk/util_functions.sh ]; then
+  NVBASE=/data
+  . /data/magisk/util_functions.sh
+else
+  require_new_magisk
+fi
+[ -z $MAGISK_VER_CODE ] && require_new_magisk
 
-# We can't alter magisk image live, use alternative image if required
-$BOOTMODE && IMG=/data/adb/magisk_merge.img
-# Always mount under tmp
-MOUNTPATH=$TMPDIR/magisk_img
+# Keep backwards compatibility
+if [ $MAGISK_VER_CODE -lt 17000 ]; then
+  # Detect whether in boot mode
+  ps | grep zygote | grep -v grep >/dev/null && BOOTMODE=true || BOOTMODE=false
+  $BOOTMODE || ps -A 2>/dev/null | grep zygote | grep -v grep >/dev/null && BOOTMODE=true
+  # Set old vars
+  MAGISKBIN=/data/adb/magisk
+  NVBASE=/data/adb
+fi
+
+# Use alternative image if in BOOTMODE
+$BOOTMODE && IMG=$NVBASE/magisk_merge.img
 
 # Preperation for flashable zips
 get_outfd
