@@ -28,7 +28,7 @@ case $PRINTED in
   *) ui_print "    Found Dolby Atmos! Patching...";;
 esac
 if [ "$(find $MOD -type f -name "libhwdax.so")" ]; then
-  patch_cfgs -pl dax dax_sw 6ab06da4-c516-4611-8166-6168726e6f69 $LIBDIR/libswdax.so dax_hw a0c30891-8246-4aef-b8ad-696f6e726861 $LIBDIR/libhwdax.so
+  patch_cfgs -pl dax 9d4921da-8225-4f29-aefa-6e6f69726861 dax_sw 6ab06da4-c516-4611-8166-6168726e6f69 $LIBDIR/libswdax.so dax_hw a0c30891-8246-4aef-b8ad-696f6e726861 $LIBDIR/libhwdax.so
 else
   patch_cfgs dax 9d4921da-8225-4f29-aefa-6e6f69726861 dax $LIBDIR/libswdax.so
 fi
@@ -43,7 +43,7 @@ case $PRINTED in
   *a0c30891-8246-4aef-b8ad-d53e26da0253*) ;;
   *) ui_print "    Found Axon 7 Dolby Atmos! Patching...";;
 esac
-patch_cfgs -pl dap dap_sw 6ab06da4-c516-4611-8166-452799218539 $LIBDIR/libswdap.so dap_hw a0c30891-8246-4aef-b8ad-d53e26da0253 $LIBDIR/libhwdap.so
+patch_cfgs -pl dap 9d4921da-8225-4f29-aefa-6e6f69726861 dap_sw 6ab06da4-c516-4611-8166-452799218539 $LIBDIR/libswdap.so dap_hw a0c30891-8246-4aef-b8ad-d53e26da0253 $LIBDIR/libhwdap.so
 #libdseffect~9d4921da-8225-4f29-aefa-39537a04bcaa
 case $PRINTED in
   *9d4921da-8225-4f29-aefa-39537a04bcaa*) ;;
@@ -113,4 +113,11 @@ patch_cfgs bassboostMz 850b6319-bf66-4f93-bec0-dc6964367786 bassboostMz $LIBDIR/
 patch_cfgs virtualizerMz 0e9779c9-4e8f-494d-b2b1-b4ad4e37c54c virtualizerMz $LIBDIR/libvirtualizerMz.so
 patch_cfgs livemusicMz 0bbc89fe-52dc-4c40-8211-cae4da538b50 livemusicMz $LIBDIR/liblivemusicMz.so
 patch_cfgs equalizerMz 9626da93-9c71-4bb2-8e23-9fc707fb9703 equalizerMz $LIBDIR/libequalizerMz.so
+#libsonysweffect~50786e95-da76-4557-976b-7981bdf6feb9
+case $PRINTED in
+  *50786e95-da76-4557-976b-7981bdf6feb9*) ;;
+  *) ui_print "    Found Sony Xperia XZ2! Patching...";;
+esac
+patch_cfgs -qle mic,camcorder ZNR b8a031e0-6bbf-11e5-b9ef-0002a5d5c51b znrwrapper $LIBDIR/libznrwrapper.so
+patch_cfgs -pl sonyeffect af8da7e0-2ca1-11e3-b71d-0002a5d5c51b sonyeffect_sw 50786e95-da76-4557-976b-7981bdf6feb9 $LIBDIR/libsonysweffect.so sonyeffect_hw f9ed8ae0-1b9c-11e4-8900-0002a5d5c51b $LIBDIR/libsonypostprocbundle.so
 #end
