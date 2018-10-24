@@ -97,7 +97,6 @@ case $PRINTED in
   *f27317f4-c984-4de6-9a90-545759495bf2*) ;;
   *) ui_print "    Found JamesDSP! Patching...";;
 esac
-LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|")"
 patch_cfgs jamesdsp f27317f4-c984-4de6-9a90-545759495bf2 jdsp $LIBDIR/libjamesdsp.so
 #libmaxxeffect-cembedded~ae12da60-99ac-11df-b456-0002a5d5c51b
 case $PRINTED in
