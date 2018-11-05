@@ -23,8 +23,8 @@ if [ ! -d $MODDIR/aml ]; then
         continue
       else
         for FILE in $(find $COREPATH/aml/mods/$LINE -type f); do
-            NAME=$(echo "$FILE" | sed "s|$COREPATH/aml/mods/||")
-            cp_mv -m $FILE $MODDIR/$NAME
+          NAME=$(echo "$FILE" | sed "s|$COREPATH/aml/mods/||")
+          cp_mv -m $FILE $MODDIR/$NAME
         done
       fi; }
     done < $COREPATH/aml/mods/modlist

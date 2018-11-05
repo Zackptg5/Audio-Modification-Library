@@ -186,7 +186,7 @@ main() {
     [ $NUM -ne 1 ] && DIR=$MODDIR/*/system
     for MOD in $(find $DIR -maxdepth 0 -type d); do
       RUNONCE=false
-      $LAST && [ "$MOD" == "$MODPATH/system" ] && continue
+      $LAST && [ "$MOD" == "$MODPATH/system" -o -f "$(dirname $MOD)/disable" ] && continue
       FILES=$(find $MOD -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml")
       [ -z "$FILES" ] && continue
       MODNAME=$(basename $(dirname $MOD))
@@ -268,7 +268,15 @@ main() {
 #Script logic
 #Determine if an audio mod was removed
 while read LINE; do
-  [ ! -d $MODDIR/$LINE ] && { export MODS="${MODS} $LINE"; REMPATCH=true; }
+  if [ ! -d $MODDIR/$LINE ]; then
+    export MODS="${MODS} $LINE"; REMPATCH=true
+  elif [ -f "$MODDIR/$LINE/disable" ]; then
+    for FILE in $(find $COREPATH/aml/mods/$LINE -type f); do
+      NAME=$(echo "$FILE" | sed "s|$COREPATH/aml/mods/||")
+      cp_mv -m $FILE $MODDIR/$NAME
+    done
+    export MODS="${MODS} $LINE"; REMPATCH=true
+  fi
 done < $COREPATH/aml/mods/modlist
 #Determine if an audio mod has been added/changed
 DIR=$(find $MODDIR/* -type d -maxdepth 0 | sed -e "s|$MODDIR/lost\+found ||g" -e "s|$MODDIR/aml ||g")
