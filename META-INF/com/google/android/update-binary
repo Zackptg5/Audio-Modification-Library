@@ -311,13 +311,13 @@ installmod() {
 
   # Copy original files to MODPATH
   if $BOOTMODE; then
-    FILES="$(find /sbin/.core/mirror/system /sbin/.core/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml")"
+    FILES="$(find /sbin/.core/mirror/system /sbin/.core/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml")"
     for FILE in ${FILES}; do
       NAME=$(echo "$FILE" | sed -e "s|/sbin/.core/mirror||" -e "s|/system/||")
       cp_mv -c $FILE $MODPATH/system/$NAME
     done
   else
-    FILES="$(find -L /system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml")"
+    FILES="$(find -L /system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml")"
     for FILE in ${FILES}; do
       NAME=$FILE
       cp_mv -c $FILE $MODPATH$NAME
@@ -335,7 +335,7 @@ installmod() {
     for MOD in ${MODS}; do
       RUNONCE=false
       [ "$MOD" == "$MODPATH/system" -o -f "$(dirname $MOD)/disable" ] && continue
-      FILES=$(find $MOD -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml")
+      FILES=$(find $MOD -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml")
       [ -z "$FILES" ] && continue
       MODNAME=$(basename $(dirname $MOD))
       echo "$MODNAME" >> $MOUNTPATH/.core/aml/mods/modlist
@@ -473,7 +473,7 @@ uninstallmod() {
   if [ -s $COREPATH/aml/mods/modlist ]; then
     while read LINE; do
       if $BOOTMODE && [ -d $MOUNTPATH/$LINE ]; then
-        [ "$(find $MOUNTPATH/$LINE -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml"  -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml"| head -n 1)" ] && continue
+        [ "$(find $MOUNTPATH/$LINE -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml"  -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" | head -n 1)" ] && continue
         MODDIR=$MOUNTPATH
       fi
       [ -d $MODDIR/$LINE ] && { for FILE in $(find $COREPATH/aml/mods/$LINE -type f); do
