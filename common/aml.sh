@@ -6,8 +6,9 @@
 
 #Variables
 MODPATH=${0%/*}
-COREPATH=$(dirname $MODPATH)
-MODDIR=$(dirname $COREPATH)
+COREPATH=/sbin/.core/img/.core
+MAGISKTMP=/sbin/.core
+MODDIR=$MAGISKTMP/img
 #Functions
 cp_mv() {
   if [ -z $4 ]; then install -D "$2" "$3"; else install -D -m "$4" "$2" "$3"; fi
@@ -19,7 +20,7 @@ if [ ! -d $MODDIR/aml ]; then
   [ -f $COREPATH/aml/mods/modlist ] && {
   if [ -s $COREPATH/aml/mods/modlist ]; then
     while read LINE; do
-      [ -d $MODDIR/$LINE ] && { if [ "$(find $MODDIR/$LINE -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml"  -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml"| head -n 1)" ]; then
+      [ -d $MODDIR/$LINE ] && { if [ "$(find $MODDIR/$LINE -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml"  -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml"| head -n 1 2>/dev/null)" ]; then
         continue
       else
         for FILE in $(find $COREPATH/aml/mods/$LINE -type f); do
