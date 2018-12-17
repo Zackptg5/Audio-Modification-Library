@@ -485,17 +485,17 @@ uninstallmod() {
   ui_print "- Uninstalling Audio Modification Library"
   # Restore all relevant audio files to their respective mod directories (if the mod still exists)
   if $BOOTMODE; then
-    [ $MAGISK_VER_CODE -lt 18000 ] && [ -f $MAGISKTMP/img/.core/aml/mods/modlist ] && COREPATH=$MAGISKTMP/img/.core
-    MODDIR=$MAGISKTMP/img
+    [ $MAGISK_VER_CODE -lt 18000 ] && [ -f $MAGISKTMP/img/.core/aml/mods/modlist ] && local COREPATH=$MAGISKTMP/img/.core
+    local MODDIR=$MAGISKTMP/img
   else
-    MODDIR=$MOUNTPATH
+    local MODDIR=$MOUNTPATH
   fi
   [ -f $COREPATH/aml/mods/modlist ] && {
   if [ -s $COREPATH/aml/mods/modlist ]; then
     while read LINE; do
       if $BOOTMODE && [ -d $MOUNTPATH/$LINE ]; then
         [ "$(find $MOUNTPATH/$LINE -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml"  -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" | head -n 1 2>/dev/null)" ] && continue
-        MODDIR=$MOUNTPATH
+        local MODDIR=$MOUNTPATH
       fi
       [ -d $MODDIR/$LINE ] && { for FILE in $(find $COREPATH/aml/mods/$LINE -type f 2>/dev/null); do
         NAME=$(echo "$FILE" | sed "s|$COREPATH/aml/mods/||")
