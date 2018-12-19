@@ -48,9 +48,15 @@ else
   require_new_magisk
 fi
 [ -z $MAGISK_VER_CODE ] && require_new_magisk
+
+# Extract files
+unzip -o "$ZIP" -d $INSTALLER >&2
+[ ! -f $INSTALLER/config.sh ] && abort "! Unable to extract zip file!"
+
+# Set paths
 if [ $MAGISK_VER_CODE -ge 18000 ]; then
   COREPATH=$NVBASE
-  for i in "post-fs-data.sh" "aml.sh"; do
+  for FILE in "post-fs-data.sh" "aml.sh"; do
     sed -i -e "s|COREPATH=.*|COREPATH=$COREPATH|" -e "s|MAGISKTMP=.*|MAGISKTMP=/sbin/.magisk|" $INSTALLER/common/$FILE
   done
 else
@@ -86,10 +92,6 @@ $BOOTMODE && boot_actions || recovery_actions
 # Preparation
 ##########################################################################################
 
-# Extract files
-unzip -o "$ZIP" -d $INSTALLER >&2
-
-[ ! -f $INSTALLER/config.sh ] && abort "! Unable to extract zip file!"
 # Load configurations
 . $INSTALLER/config.sh
 

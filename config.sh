@@ -86,7 +86,6 @@ REPLACE="
 set_permissions() {
   # Default permissions, don't remove them
   set_perm_recursive  $MODPATH  0  0  0755  0644
-  set_perm $MODPATH/xmlstarlet 0 0 0755
 
   # Only some special files require specific permissions
   # The default permissions should be good enough for most cases
@@ -137,19 +136,6 @@ osp_detect() {
               [ "$EFFECT" != "atmos" ] && sed -i "/^\( *\)<apply effect=\"$EFFECT\"\/>/d" $1
             done;;
   esac
-}
-
-patch_xml() {
-  if [ "$(xmlstarlet sel -t -m "$2" -c . $1)" ]; then
-    [ "$(xmlstarlet sel -t -m "$2" -c . $1 | sed -r "s/.*samplingRates=\"([0-9]*)\".*/\1/")" == "48000" ] && return
-    xmlstarlet ed -L -u "$2/@samplingRates" -v "48000" $1
-  else
-    local NP=$(echo "$2" | sed -r "s|(^.*)/.*$|\1|")
-    local SNP=$(echo "$2" | sed -r "s|(^.*)\[.*$|\1|")
-    local SN=$(echo "$2" | sed -r "s|^.*/.*/(.*)\[.*$|\1|")
-    xmlstarlet ed -L -s "$NP" -t elem -n "$SN-$MODID" -i "$SNP-$MODID" -t attr -n "name" -v "" -i "$SNP-$MODID" -t attr -n "format" -v "AUDIO_FORMAT_PCM_16_BIT" -i "$SNP-$MODID" -t attr -n "samplingRates" -v "48000" -i "$SNP-$MODID" -t attr -n "channelMasks" -v "AUDIO_CHANNEL_OUT_STEREO" $1
-    xmlstarlet ed -L -r "$SNP-$MODID" -v "$SN" $1
-  fi
 }
 
 patch_cfgs() {
@@ -290,12 +276,6 @@ installmod() {
   mktouch $COREPATH/aml/mods/modlist
   mktouch $MODPATH/system.prop
   
-  # Unzip and place xmlstarlet
-  tar -xf $INSTALLER/common/xmlstarlet.tar.xz -C $INSTALLER/common 2>/dev/null
-  chmod -R 755 $INSTALLER/common/xmlstarlet/$ARCH32
-  echo $PATH | grep -q "^$INSTALLER/common/xmlstarlet/$ARCH32" || export PATH=$INSTALLER/common/xmlstarlet/$ARCH32:$PATH
-  cp -f $INSTALLER/common/xmlstarlet/$ARCH32/xmlstarlet $MODPATH/xmlstarlet
-
   ui_print "   Searching for supported audio mods..."
   # Escape each backslash and space since shell will expand it during echo
   sed -i -e 's/\\/\\\\/g' -e 's/\ /\\ /g' $INSTALLER/common/AudioModificationLibrary.sh
