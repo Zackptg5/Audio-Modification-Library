@@ -23,7 +23,7 @@ ui_print() { echo "$1"; }
 
 require_new_magisk() {
   ui_print "*******************************"
-  ui_print " Please install Magisk v15.3+! "
+  ui_print " Please install Magisk v17.0+! "
   ui_print "*******************************"
   exit 1
 }
@@ -37,9 +37,8 @@ ZIP=$3
 
 mount /data 2>/dev/null
 
-# Load utility functions and keep backwards compatibility
+# Load utility functions
 if [ -f /data/adb/magisk/util_functions.sh ]; then
-  NVBASE=/data/adb
   . /data/adb/magisk/util_functions.sh
 elif [ -f /data/magisk/util_functions.sh ]; then
   NVBASE=/data
@@ -47,34 +46,12 @@ elif [ -f /data/magisk/util_functions.sh ]; then
 else
   require_new_magisk
 fi
-[ -z $MAGISK_VER_CODE ] && require_new_magisk
-
-# Extract files
-unzip -o "$ZIP" -d $INSTALLER >&2
-[ ! -f $INSTALLER/config.sh ] && abort "! Unable to extract zip file!"
-
-# Set paths
-if [ $MAGISK_VER_CODE -ge 18000 ]; then
-  COREPATH=$NVBASE
-  for FILE in "post-fs-data.sh" "aml.sh"; do
-    sed -i -e "s|COREPATH=.*|COREPATH=$COREPATH|" -e "s|MAGISKTMP=.*|MAGISKTMP=/sbin/.magisk|" $INSTALLER/common/$FILE
-  done
-else
-  COREPATH=$MOUNTPATH/.core
-  MAGISKTMP=/sbin/.core
-  if [ $MAGISK_VER_CODE -lt 17000 ]; then
-    # This stuff isn't in util_functions in older magisk versions
-    ps | grep zygote | grep -v grep >/dev/null && BOOTMODE=true || BOOTMODE=false
-    $BOOTMODE || ps -A 2>/dev/null | grep zygote | grep -v grep >/dev/null && BOOTMODE=true
-    MAGISKBIN=/data/adb/magisk
-  fi
-fi
 
 # Use alternative image if in BOOTMODE
 $BOOTMODE && IMG=$NVBASE/magisk_merge.img
 
 # Preperation for flashable zips
-get_outfd
+setup_flashable
 
 # Mount partitions
 mount_partitions
@@ -92,6 +69,10 @@ $BOOTMODE && boot_actions || recovery_actions
 # Preparation
 ##########################################################################################
 
+# Extract common files
+unzip -o "$ZIP" module.prop config.sh 'common/*' -d $INSTALLER >&2
+
+[ ! -f $INSTALLER/config.sh ] && abort "! Unable to extract zip file!"
 # Load configurations
 . $INSTALLER/config.sh
 
@@ -100,6 +81,23 @@ MIN_VER=`grep_prop minMagisk $INSTALLER/module.prop`
 [ ! -z $MAGISK_VER_CODE -a $MAGISK_VER_CODE -ge $MIN_VER ] || require_new_magisk
 MODID=`grep_prop id $INSTALLER/module.prop`
 MODPATH=$MOUNTPATH/$MODID
+
+# Set paths and vars
+MOD_VER=$MODPATH/module.prop; MMAGDIR=$MAGISKTMP/img/$MODID
+if [ $MAGISK_VER_CODE -ge 18000 ]; then
+  COREPATH=$NVBASE
+  if [ $MAGISK_VER_CODE -gt 18100 ]; then
+    MAGISKTMP=$NVBASE/modules; MMAGDIR=$NVBASE/modules/$MODID
+    $BOOTMODE && MOD_VER=$NVBASE/modules/$MODID/module.prop
+  else
+    $BOOTMODE && MOD_VER=$MAGISKTMP/img/$MODID/module.prop
+  fi
+  for FILE in "post-fs-data.sh" "aml.sh" "aml-legacy.sh"; do
+    sed -i -e "s|COREPATH=.*|COREPATH=$COREPATH|" -e "s|MAGISKTMP=.*|MAGISKTMP=/sbin/.magisk|" $INSTALLER/common/$FILE
+  done
+else
+  COREPATH=$MOUNTPATH/.core
+fi
 
 # Print mod name
 print_modname
@@ -120,11 +118,6 @@ request_zip_size_check "$ZIP"
 mount_magisk_img
 
 # Detect aml version and act accordingly
-if $BOOTMODE; then 
-  MOD_VER=$MAGISKTMP/img/$MODID/module.prop
-else
-  MOD_VER=$MODPATH/module.prop
-fi
 if [ -f "$MOD_VER" ]; then
   if [ $(grep_prop versionCode $MOD_VER) -ge $(grep_prop versionCode $INSTALLER/module.prop) ]; then
     ui_print "- Current or newer version detected. Uninstalling!"

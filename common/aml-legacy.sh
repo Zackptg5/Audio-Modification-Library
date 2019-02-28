@@ -6,8 +6,8 @@
 
 #Variables
 MODPATH=${0%/*}
-COREPATH=/data/adb
-MODDIR=$COREPATH/modules
+COREPATH=/sbin/.core/img/.core
+MODDIR=/sbin/.core/img
 #Functions
 cp_mv() {
   if [ -z $4 ]; then install -D "$2" "$3"; else install -D -m "$4" "$2" "$3"; fi
@@ -25,10 +25,12 @@ if [ ! -d $MODDIR/aml ]; then
         for FILE in $(find $COREPATH/aml/mods/$LINE -type f); do
           NAME=$(echo "$FILE" | sed "s|$COREPATH/aml/mods/||")
           cp_mv -m $FILE $MODDIR/$NAME
+          mount --bind $MODDIR/$NAME $(echo $NAME | cut -d/ -f2-)
         done
       fi; }
     done < $COREPATH/aml/mods/modlist
   fi; }
   rm -rf $COREPATH/aml
   rm -f $0
+  killall audioserver
 fi

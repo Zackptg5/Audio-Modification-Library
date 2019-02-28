@@ -422,17 +422,18 @@ installmod() {
 
   # Module info
   cp -af $INSTALLER/module.prop $MODPATH/module.prop
+  mktouch $MODPATH/auto_mount
   if $BOOTMODE; then
     # Update info for Magisk Manager
-    mktouch $MAGISKTMP/img/$MODID/update
-    cp -af $INSTALLER/module.prop $MAGISKTMP/img/$MODID/module.prop
+    rm -f $MMAGDIR/remove; mktouch $MMAGDIR/update
+    cp -af $INSTALLER/module.prop $MMAGDIR/module.prop
   fi
+  [ $MAGISK_VER_CODE -gt 18100 ] && cp_mv -c $INSTALLER/common/aml.sh $COREPATH/post-fs-data.d/aml.sh 0755 || cp_mv -c $INSTALLER/common/aml-legacy.sh $COREPATH/service.d/aml.sh 0755
 
   # post-fs-data mode scripts
   [ $API -ge 26 ] && sed -i "s/OREONEW=false/OREONEW=true/" $INSTALLER/common/post-fs-data.sh
   $POSTFSDATA && cp -af $INSTALLER/common/post-fs-data.sh $MODPATH/post-fs-data.sh
-  cp_mv -c $INSTALLER/common/aml.sh $COREPATH/post-fs-data.d/aml.sh 0755
-
+  
   # service mode scripts
   $LATESTARTSERVICE && cp -af $INSTALLER/common/service.sh $MODPATH/service.sh
 
@@ -450,23 +451,21 @@ uninstallmod() {
   # Restore all relevant audio files to their respective mod directories (if the mod still exists)
   if $BOOTMODE; then
     [ $MAGISK_VER_CODE -lt 18000 ] && [ -f $MAGISKTMP/img/.core/aml/mods/modlist ] && local COREPATH=$MAGISKTMP/img/.core
-    local MODDIR=$MAGISKTMP/img
+    [ $MAGISK_VER_CODE -gt 18100 ] && local MODDIRS=$MOUNTPATH || local MODDIRS="$MOUNTPATH $MAGISKTMP/img"
   else
-    local MODDIR=$MOUNTPATH
+    local MODDIRS=$MOUNTPATH
   fi
   [ -f $COREPATH/aml/mods/modlist ] && {
   if [ -s $COREPATH/aml/mods/modlist ]; then
     while read LINE; do
-      if $BOOTMODE && [ -d $MOUNTPATH/$LINE ]; then
-        [ "$(find $MOUNTPATH/$LINE -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml"  -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" | head -n 1 2>/dev/null)" ] && continue
-        local MODDIR=$MOUNTPATH
-      fi
-      [ -d $MODDIR/$LINE ] && { for FILE in $(find $COREPATH/aml/mods/$LINE -type f 2>/dev/null); do
-        NAME=$(echo "$FILE" | sed "s|$COREPATH/aml/mods/||")
-        cp_mv -m $FILE $MODDIR/$NAME
-      done; }
+      for MODDIR in $MODDIRS; do
+        [ -d $MODDIR/$LINE ] && { for FILE in $(find $COREPATH/aml/mods/$LINE -type f 2>/dev/null); do
+          NAME=$(echo "$FILE" | sed "s|$COREPATH/aml/mods/||")
+          [ -f "$MODDIR/$NAME" ] || cp_mv -c $FILE $MODDIR/$NAME
+        done; }
+      done
     done < $COREPATH/aml/mods/modlist
   fi; }
   rm -f $COREPATH/post-fs-data.d/aml.sh $COREPATH/post-fs-data.d/aml.sh
-  rm -rf $COREPATH/aml $COREPATH/aml $MODPATH $MAGISKTMP/img/$MODID
+  rm -rf $COREPATH/aml $MODPATH $MAGISKTMP/img/$MODID
 }
