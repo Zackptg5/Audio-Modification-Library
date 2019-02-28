@@ -8,11 +8,6 @@
 MODPATH=${0%/*}
 COREPATH=/data/adb
 MODDIR=$COREPATH/modules
-#Functions
-cp_mv() {
-  if [ -z $4 ]; then install -D "$2" "$3"; else install -D -m "$4" "$2" "$3"; fi
-  [ "$1" == "-m" ] && rm -f $2
-}
 
 #Main
 if [ ! -d $MODDIR/aml ]; then
@@ -23,8 +18,8 @@ if [ ! -d $MODDIR/aml ]; then
         continue
       else
         for FILE in $(find $COREPATH/aml/mods/$LINE -type f); do
-          NAME=$(echo "$FILE" | sed "s|$COREPATH/aml/mods/||")
-          cp_mv -m $FILE $MODDIR/$NAME
+          NAME=$(echo "$FILE" | sed "s|$COREPATH/aml/mods/$LINE/||")
+          install -D $FILE $MODDIR/$LINE/$NAME
         done
       fi; }
     done < $COREPATH/aml/mods/modlist
