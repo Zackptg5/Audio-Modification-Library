@@ -451,8 +451,12 @@ uninstallmod() {
   ui_print "- Uninstalling Audio Modification Library"
   # Restore all relevant audio files to their respective mod directories (if the mod still exists)
   if $BOOTMODE; then
+    if [ $MAGISK_VER_CODE -gt 18100 ]; then
+      local MODDIRS=$MMAGDIR
+    else
+      local MODDIRS="$MOUNTPATH $MMAGDIR"
     [ $MAGISK_VER_CODE -lt 18000 ] && [ -f $MMAGDIR/.core/aml/mods/modlist ] && local COREPATH=$MMAGDIR/.core
-    [ $MAGISK_VER_CODE -gt 18100 ] && local MODDIRS=$MOUNTPATH || local MODDIRS="$MOUNTPATH $MMAGDIR"
+    fi
   else
     local MODDIRS=$MOUNTPATH
   fi
