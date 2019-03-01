@@ -83,21 +83,21 @@ MODID=`grep_prop id $INSTALLER/module.prop`
 MODPATH=$MOUNTPATH/$MODID
 
 # Set paths and vars
-MOD_VER=$MODPATH/module.prop; MMAGDIR=$MAGISKTMP/img/$MODID
 if [ $MAGISK_VER_CODE -ge 18000 ]; then
   COREPATH=$NVBASE
   if [ $MAGISK_VER_CODE -gt 18100 ]; then
-    MAGISKTMP=$NVBASE/modules; MMAGDIR=$NVBASE/modules/$MODID
+    MMAGDIR=$NVBASE/modules
     $BOOTMODE && MOD_VER=$NVBASE/modules/$MODID/module.prop
   else
     $BOOTMODE && MOD_VER=$MAGISKTMP/img/$MODID/module.prop
   fi
   for FILE in "post-fs-data.sh" "aml.sh" "aml-legacy.sh"; do
-    sed -i -e "s|COREPATH=.*|COREPATH=$COREPATH|" -e "s|MAGISKTMP=.*|MAGISKTMP=/sbin/.magisk|" $INSTALLER/common/$FILE
+    sed -i -e "s|COREPATH=.*|COREPATH=$COREPATH|" -e "s|MAGISKTMP=.*|MAGISKTMP=$MAGISKTMP|" $INSTALLER/common/$FILE
   done
 else
-  COREPATH=$MOUNTPATH/.core
+  COREPATH=$MOUNTPATH/.core; MOD_VER=$MODPATH/module.prop; MMAGDIR=$MAGISKTMP/img
 fi
+MMODPATH=$MMAGDIR/$MODID
 
 # Print mod name
 print_modname

@@ -316,7 +316,7 @@ installmod() {
   # Search magisk img for any audio mods and move relevant files (confs/pols/mixs/props) to non-mounting directory
   # Patch common aml files for each audio mod found
   PRINTED=""
-  if $BOOTMODE; then MODS="$(find $MAGISKTMP/img/*/system $MOUNTPATH/*/system -maxdepth 0 -type d 2>/dev/null)"; else MODS="$(find $MOUNTPATH/*/system -maxdepth 0 -type d 2>/dev/null)"; fi
+  if $BOOTMODE; then MODS="$(find $MMAGDIR/*/system $MOUNTPATH/*/system -maxdepth 0 -type d 2>/dev/null)"; else MODS="$(find $MOUNTPATH/*/system -maxdepth 0 -type d 2>/dev/null)"; fi
   if [ "$MODS" ]; then
     for MOD in ${MODS}; do
       RUNONCE=false
@@ -397,7 +397,7 @@ installmod() {
             $CONFPRINT || { ui_print " "
             ui_print "   ! Conflicting props found !"
             ui_print "   ! Conflicting props will be commented out !"
-            ui_print "   ! Check the conflicting props file at $MAGISKTMP/img/aml/system.prop"
+            ui_print "   ! Check the conflicting props file at $MMAGDIR/aml/system.prop"
             ui_print " "; }
             CONFPRINT=true
           fi
@@ -425,8 +425,8 @@ installmod() {
   mktouch $MODPATH/auto_mount
   if $BOOTMODE; then
     # Update info for Magisk Manager
-    rm -f $MMAGDIR/remove; mktouch $MMAGDIR/update
-    cp -af $INSTALLER/module.prop $MMAGDIR/module.prop
+    rm -f $MMAGDIR/$MODID/remove; mktouch $MMAGDIR/$MODID/update
+    cp -af $INSTALLER/module.prop $MMAGDIR/$MODID/module.prop
   fi
   [ $MAGISK_VER_CODE -gt 18100 ] && cp_mv -c $INSTALLER/common/aml.sh $COREPATH/post-fs-data.d/aml.sh 0755 || cp_mv -c $INSTALLER/common/aml-legacy.sh $COREPATH/service.d/aml.sh 0755
 
@@ -450,8 +450,8 @@ uninstallmod() {
   ui_print "- Uninstalling Audio Modification Library"
   # Restore all relevant audio files to their respective mod directories (if the mod still exists)
   if $BOOTMODE; then
-    [ $MAGISK_VER_CODE -lt 18000 ] && [ -f $MAGISKTMP/img/.core/aml/mods/modlist ] && local COREPATH=$MAGISKTMP/img/.core
-    [ $MAGISK_VER_CODE -gt 18100 ] && local MODDIRS=$MOUNTPATH || local MODDIRS="$MOUNTPATH $MAGISKTMP/img"
+    [ $MAGISK_VER_CODE -lt 18000 ] && [ -f $MMAGDIR/.core/aml/mods/modlist ] && local COREPATH=$MMAGDIR/.core
+    [ $MAGISK_VER_CODE -gt 18100 ] && local MODDIRS=$MOUNTPATH || local MODDIRS="$MOUNTPATH $MMAGDIR"
   else
     local MODDIRS=$MOUNTPATH
   fi
@@ -467,5 +467,5 @@ uninstallmod() {
     done < $COREPATH/aml/mods/modlist
   fi; }
   rm -f $COREPATH/post-fs-data.d/aml.sh $COREPATH/post-fs-data.d/aml.sh
-  rm -rf $COREPATH/aml $MODPATH $MAGISKTMP/img/$MODID
+  rm -rf $COREPATH/aml $MODPATH $MMAGDIR/$MODID
 }
