@@ -25,6 +25,7 @@ cp_mv() {
     chmod $4 "$3"
   fi
   [ "$1" == "-m" ] && rm -f $2
+  return 0
 }
 osp_detect() {
   case $1 in
