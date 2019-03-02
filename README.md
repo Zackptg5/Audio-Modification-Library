@@ -3,8 +3,10 @@ AudModLib is a compatibility framework that allows the seamless integration of m
 
 ## Change Log
 ### v2.0 - x.xx.2019
-* Bug fixes with mod detection and whatnot
 * Updated for magisk 18.2 - backwards compatible only to v17.0 (magisk 18.2 fixed issues preventing some devices from using newer versions of magisk)
+
+### v1.9.4 - 2.28.2019
+* Bug fixes with mod detection and whatnot
 
 ### v1.9.3 - 2.21.2019
 * Small bug fix
