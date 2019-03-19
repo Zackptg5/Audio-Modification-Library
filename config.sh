@@ -439,8 +439,8 @@ installmod() {
   $LATESTARTSERVICE && cp -af $INSTALLER/common/service.sh $MODPATH/service.sh
 
   # ADD BLANK LINE TO END OF ALL PROP/SCRIPT FILES IF NOT ALREADY PRESENT
-  for FILE in $MODPATH/*.sh $MODPATH/*.prop $COREPATH/post-fs-data.d/aml.sh; do
-    [ "$(tail -1 $FILE)" ] && echo "" >> $FILE
+  for FILE in $MODPATH/*.sh $MODPATH/*.prop $COREPATH/post-fs-data.d/aml.sh $COREPATH/service.d/aml.sh; do
+    [ -f "$FILE" ] && [ "$(tail -1 $FILE)" ] && echo "" >> $FILE
   done
 
   ui_print "- Setting permissions"
