@@ -126,14 +126,43 @@ print_modname() {
   ui_print "   Audio Modification Library  "
   ui_print "      (Zackptg5, Ahrion)       "
   ui_print "*******************************"
+
+  if [ $MAGISK_VER_CODE -ge 18000 ]; then
+    COREPATH=$NVBASE
+    if [ $MAGISK_VER_CODE -gt 18100 ]; then
+      MMODULEROOT=$NVBASE/modules
+      $BOOTMODE && MOD_VER=$NVBASE/modules/$MODID/module.prop
+    else
+      $BOOTMODE && MOD_VER=$MAGISKTMP/img/$MODID/module.prop
+    fi
+    for FILE in "post-fs-data.sh" "uninstall.sh"; do
+      sed -i -e "s|COREPATH=.*|COREPATH=$COREPATH|" -e "s|MAGISKTMP=.*|MAGISKTMP=$MAGISKTMP|" $TMPDIR/$FILE
+    done
+  else
+    COREPATH=$MOUNTPATH/.core; MOD_VER=$MODPATH/module.prop; MMODULEROOT=$MAGISKTMP/img
+  fi
+  [ $API -ge 26 ] && sed -i "s/OREONEW=false/OREONEW=true/" $TMPDIR/post-fs-data.sh
+
+  # Detect aml version and act accordingly
+  UNINSTALL=false; UPGRADE=false
+  if [ -f "$MOD_VER" ]; then
+    if [ $(grep_prop versionCode $MOD_VER) -ge $(grep_prop versionCode $TMPDIR/module.prop) ]; then
+      ui_print "- Current or newer version detected. Uninstalling!"
+      UNINSTALL=true
+    else
+      ui_print "- Older version detected. Upgrading!"
+      UPGRADE=true; UNINSTALL=true
+    fi
+  fi
 }
 
 # Copy/extract your module files into $MODPATH in on_install.
 
 on_install() {
-  # The following is the default implementation: extract $ZIP/system to $MODPATH
-  # Extend/change the logic to whatever you want
-  $UNINSTALL && onuninstall
+  if $UNINSTALL; then
+    onuninstall
+    $UPGRADE || return 0
+  fi
   
   ui_print "- Installing Audio Modification Library"
   # Create mod paths
@@ -142,7 +171,7 @@ on_install() {
   
   ui_print "   Searching for supported audio mods..."
   # Escape each backslash and space since shell will expand it during echo
-  sed -i -e 's/\\/\\\\/g' -e 's/\ /\\ /g' $TMPDIR/common/AudioModificationLibrary.sh
+  sed -i -e 's/\\/\\\\/g' -e 's/\ /\\ /g' $TMPDIR/AudioModificationLibrary.sh
   # Separate AML into individual files for each audio mod
   mkdir -p $TMPDIR/mods
   while read LINE; do
@@ -157,7 +186,7 @@ on_install() {
            UUID=$(echo "$LINE" | sed "s/#//");;
       *) echo "$LINE" >> $TMPDIR/mods/$UUID.sh;;
     esac
-  done < $TMPDIR/common/AudioModificationLibrary.sh
+  done < $TMPDIR/AudioModificationLibrary.sh
 
   # Copy original files to MODPATH
   if $BOOTMODE; then
@@ -274,9 +303,24 @@ on_install() {
   fi
   
   # Add blank line to end of all prop/script files if not already present
-  for FILE in $MODPATH/*.sh $MODPATH/*.prop $COREPATH/post-fs-data.d/aml.sh $COREPATH/service.d/aml.sh; do
+  for FILE in $MODPATH/*.sh $MODPATH/*.prop; do
     [ -f "$FILE" ] && [ "$(tail -1 $FILE)" ] && echo "" >> $FILE
   done
+}
+
+# Only some special files require specific permissions
+# This function will be called after on_install is done
+# The default permissions should be good enough for most cases
+
+set_permissions() {
+  # The following is the default rule, DO NOT remove
+  [ -d $MODPATH ] && set_perm_recursive $MODPATH 0 0 0755 0644
+
+  # Here are some examples:
+  # set_perm_recursive  $MODPATH/system/lib       0     0       0755      0644
+  # set_perm  $MODPATH/system/bin/app_process32   0     2000    0755      u:object_r:zygote_exec:s0
+  # set_perm  $MODPATH/system/bin/dex2oat         0     2000    0755      u:object_r:dex2oat_exec:s0
+  # set_perm  $MODPATH/system/lib/libart.so       0     0       0644
 }
 
 onuninstall() {
@@ -303,57 +347,11 @@ onuninstall() {
       done
     done < $COREPATH/aml/mods/modlist
   fi; }
-  rm -f $COREPATH/post-fs-data.d/aml.sh $COREPATH/post-fs-data.d/aml.sh
   rm -rf $COREPATH/aml 
   $UPGRADE && { [ "$MMODULEROOT/$MODID" != "$MODPATH" ] && rm -rf $MMODULEROOT/$MODID; } || rm -rf $MODPATH $MMODULEROOT/$MODID
 }
 
-# Only some special files require specific permissions
-# This function will be called after on_install is done
-# The default permissions should be good enough for most cases
-
-set_permissions() {
-  # The following is the default rule, DO NOT remove
-  [ -d $MODPATH ] && set_perm_recursive $MODPATH 0 0 0755 0644
-
-  # Here are some examples:
-  # set_perm_recursive  $MODPATH/system/lib       0     0       0755      0644
-  # set_perm  $MODPATH/system/bin/app_process32   0     2000    0755      u:object_r:zygote_exec:s0
-  # set_perm  $MODPATH/system/bin/dex2oat         0     2000    0755      u:object_r:dex2oat_exec:s0
-  # set_perm  $MODPATH/system/lib/libart.so       0     0       0644
-}
-
 # You can add more functions to assist your custom script code
-
-[ $API -ge 26 ] && sed -i "s/OREONEW=false/OREONEW=true/" $TMPDIR/common/post-fs-data.sh
-
-if [ $MAGISK_VER_CODE -ge 18000 ]; then
-  COREPATH=$NVBASE
-  if [ $MAGISK_VER_CODE -gt 18100 ]; then
-    MMODULEROOT=$NVBASE/modules
-    $BOOTMODE && MOD_VER=$NVBASE/modules/$MODID/module.prop
-  else
-    $BOOTMODE && MOD_VER=$MAGISKTMP/img/$MODID/module.prop
-  fi
-  for FILE in "common/post-fs-data.sh" "uninstall.sh"; do
-    sed -i -e "s|COREPATH=.*|COREPATH=$COREPATH|" -e "s|MAGISKTMP=.*|MAGISKTMP=$MAGISKTMP|" $TMPDIR/$FILE
-  done
-else
-  COREPATH=$MOUNTPATH/.core; MOD_VER=$MODPATH/module.prop; MMODULEROOT=$MAGISKTMP/img
-fi
-
-# Detect aml version and act accordingly
-UNINSTALL=false; UPGRADE=false
-if [ -f "$MOD_VER" ]; then
-  if [ $(grep_prop versionCode $MOD_VER) -ge $(grep_prop versionCode $TMPDIR/module.prop) ]; then
-    ui_print "- Current or newer version detected. Uninstalling!"
-    UNINSTALL=true
-  else
-    ui_print "- Older version detected. Upgrading!"
-    UPGRADE=true; UNINSTALL=true
-  fi
-fi
-
 cp_mv() {
   if [ -z $4 ]; then
     mkdir -p "$(dirname $3)"
