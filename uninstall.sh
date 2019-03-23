@@ -6,8 +6,8 @@
 
 #Variables
 MODPATH=${0%/*}
-COREPATH=/sbin/.core/img/.core
-MODDIR=/sbin/.core/img
+COREPATH=/data/adb
+MODDIR=$COREPATH/modules
 
 #Main
 if [ ! -d $MODDIR/aml ]; then
@@ -20,12 +20,9 @@ if [ ! -d $MODDIR/aml ]; then
         for FILE in $(find $COREPATH/aml/mods/$LINE -type f); do
           NAME=$(echo "$FILE" | sed "s|$COREPATH/aml/mods/$LINE/||")
           install -D $FILE $MODDIR/$LINE/$NAME
-          [ "$(basename $NAME)" != "system.prop" ] && mount --bind $MODDIR/$LINE/$NAME /$NAME
         done
       fi; }
     done < $COREPATH/aml/mods/modlist
   fi; }
   rm -rf $COREPATH/aml
-  rm -f $0
-  killall audioserver
 fi
