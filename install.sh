@@ -135,6 +135,7 @@ print_modname() {
     $BOOTMODE && MOD_VER=$MAGISKTMP/img/$MODID/module.prop
   fi
   [ $API -ge 26 ] && sed -i "s/OREONEW=false/OREONEW=true/" $TMPDIR/post-fs-data.sh
+  sed -i "s|MODDIR=.*|MODDIR=$MMODULEROOT|" $TMPDIR/uninstall.sh
 
   # Detect aml version and act accordingly
   UNINSTALL=false; UPGRADE=false

@@ -5,9 +5,8 @@
 # More info in the main Magisk thread
 
 #Variables
-MODPATH=${0%/*}
-MODDIR=$(basename $MODPATH)
 NVBASE=/data/adb
+MODDIR=$NVBASE/modules
 
 #Main
 [ -f $NVBASE/aml/mods/modlist ] && {
