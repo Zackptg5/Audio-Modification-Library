@@ -7,8 +7,8 @@
 #Variables
 MODPATH=${0%/*}
 MODDIR=$(dirname $MODPATH)
-COREPATH=/sbin/.core/img/.core
-MAGISKTMP=/sbin/.core
+NVBASE=/data/adb
+MAGISKTMP=/sbin/.magisk
 REMPATCH=false
 NEWPATCH=false
 OREONEW=false
@@ -192,7 +192,7 @@ main() {
       FILES=$(find $MOD -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml")
       [ -z "$FILES" ] && continue
       MODNAME=$(basename $(dirname $MOD))
-      $LAST && [ ! "$(grep "$MODNAME" $COREPATH/aml/mods/modlist)" ] && echo "$MODNAME" >> $COREPATH/aml/mods/modlist
+      $LAST && [ ! "$(grep "$MODNAME" $NVBASE/aml/mods/modlist)" ] && echo "$MODNAME" >> $NVBASE/aml/mods/modlist
       COUNT=1
       [ "$MODNAME" == "ainur_sauron" ] && LIBDIR="$(dirname $(find $MOD -type f -name "libbundlewrapper.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
       if [ -f "$(dirname $MOD)/.aml.sh" ]; then
@@ -239,7 +239,7 @@ main() {
                                  fi
                                done;;
         esac
-        $LAST && cp_mv -m $FILE $COREPATH/aml/mods/$MODNAME/$NAME
+        $LAST && cp_mv -m $FILE $NVBASE/aml/mods/$MODNAME/$NAME
       done
       if $LAST && [ -f $(dirname $MOD)/system.prop ]; then
         sed -i "/^$/d" $(dirname $MOD)/system.prop
@@ -254,7 +254,7 @@ main() {
             echo "#$PROP" >> $MODPATH/system.prop
           fi
         done < $(dirname $MOD)/system.prop
-        cp_mv -m $(dirname $MOD)/system.prop $COREPATH/aml/mods/$MODNAME/system.prop
+        cp_mv -m $(dirname $MOD)/system.prop $NVBASE/aml/mods/$MODNAME/system.prop
       fi
     done
     if $LAST; then
@@ -273,13 +273,13 @@ while read LINE; do
   if [ ! -d $MODDIR/$LINE ]; then
     export MODS="${MODS} $LINE"; REMPATCH=true
   elif [ -f "$MODDIR/$LINE/disable" ]; then
-    for FILE in $(find $COREPATH/aml/mods/$LINE -type f); do
-      NAME=$(echo "$FILE" | sed "s|$COREPATH/aml/mods/||")
+    for FILE in $(find $NVBASE/aml/mods/$LINE -type f); do
+      NAME=$(echo "$FILE" | sed "s|$NVBASE/aml/mods/||")
       cp_mv -m $FILE $MODDIR/$NAME
     done
     export MODS="${MODS} $LINE"; REMPATCH=true
   fi
-done < $COREPATH/aml/mods/modlist
+done < $NVBASE/aml/mods/modlist
 #Determine if an audio mod has been added/changed
 DIR=$(find $MODDIR/* -type d -maxdepth 0 | sed -e "s|$MODDIR/lost\+found ||g" -e "s|$MODDIR/aml ||g")
 [ "$(find $DIR -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml"  -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" | head -n 1)" ] && NEWPATCH=true
@@ -287,8 +287,8 @@ DIR=$(find $MODDIR/* -type d -maxdepth 0 | sed -e "s|$MODDIR/lost\+found ||g" -e
 if $REMPATCH; then
   if [ -f $MODPATH/system.prop ]; then > $MODPATH/system.prop; else touch $MODPATH/system.prop; fi
   for MODNAME in ${MODS}; do
-    rm -rf $COREPATH/aml/mods/$MODNAME
-    sed -i "/$MODNAME/d" $COREPATH/aml/mods/modlist
+    rm -rf $NVBASE/aml/mods/$MODNAME
+    sed -i "/$MODNAME/d" $NVBASE/aml/mods/modlist
   done
   FILES="$(find $MAGISKTMP/mirror/system $MAGISKTMP/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml")"
   for FILE in ${FILES}; do
@@ -298,7 +298,7 @@ if $REMPATCH; then
   for FILE in $(find $MODPATH/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml"); do
     osp_detect $FILE
   done
-  main "$COREPATH/aml/mods/*/system"
+  main "$NVBASE/aml/mods/*/system"
 elif $NEWPATCH; then
   main "$MODDIR/*/system"
 fi

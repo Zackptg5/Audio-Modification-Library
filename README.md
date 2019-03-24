@@ -3,7 +3,7 @@ AudModLib is a compatibility framework that allows the seamless integration of m
 
 ## Change Log
 ### v2.0 - 3.xx.2019
-* Updated to new magisk template
+* Updated to new magisk template - compatible with magisk 18+ only
 
 ### v1.9.4 - 2.28.2019
 * Bug fixes with mod detection and whatnot

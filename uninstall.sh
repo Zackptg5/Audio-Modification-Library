@@ -6,23 +6,21 @@
 
 #Variables
 MODPATH=${0%/*}
-COREPATH=/data/adb
-MODDIR=$COREPATH/modules
+MODDIR=$(basename $MODPATH)
+NVBASE=/data/adb
 
 #Main
-if [ ! -d $MODDIR/aml ]; then
-  [ -f $COREPATH/aml/mods/modlist ] && {
-  if [ -s $COREPATH/aml/mods/modlist ]; then
-    while read LINE; do
-      [ -d $MODDIR/$LINE ] && { if [ "$(find $MODDIR/$LINE -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml"  -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml"| head -n 1 2>/dev/null)" ]; then
-        continue
-      else
-        for FILE in $(find $COREPATH/aml/mods/$LINE -type f); do
-          NAME=$(echo "$FILE" | sed "s|$COREPATH/aml/mods/$LINE/||")
-          install -D $FILE $MODDIR/$LINE/$NAME
-        done
-      fi; }
-    done < $COREPATH/aml/mods/modlist
-  fi; }
-  rm -rf $COREPATH/aml
-fi
+[ -f $NVBASE/aml/mods/modlist ] && {
+if [ -s $NVBASE/aml/mods/modlist ]; then
+  while read LINE; do
+    [ -d $MODDIR/$LINE ] && { if [ "$(find $MODDIR/$LINE -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml"  -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml"| head -n 1 2>/dev/null)" ]; then
+      continue
+    else
+      for FILE in $(find $NVBASE/aml/mods/$LINE -type f); do
+        NAME=$(echo "$FILE" | sed "s|$NVBASE/aml/mods/$LINE/||")
+        install -D $FILE $MODDIR/$LINE/$NAME
+      done
+    fi; }
+  done < $NVBASE/aml/mods/modlist
+fi; }
+rm -rf $NVBASE/aml

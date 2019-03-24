@@ -127,19 +127,12 @@ print_modname() {
   ui_print "      (Zackptg5, Ahrion)       "
   ui_print "*******************************"
 
-  if [ $MAGISK_VER_CODE -ge 18000 ]; then
-    COREPATH=$NVBASE
-    if [ $MAGISK_VER_CODE -gt 18100 ]; then
-      MMODULEROOT=$NVBASE/modules
-      $BOOTMODE && MOD_VER=$NVBASE/modules/$MODID/module.prop
-    else
-      $BOOTMODE && MOD_VER=$MAGISKTMP/img/$MODID/module.prop
-    fi
-    for FILE in "post-fs-data.sh" "uninstall.sh"; do
-      sed -i -e "s|COREPATH=.*|COREPATH=$COREPATH|" -e "s|MAGISKTMP=.*|MAGISKTMP=$MAGISKTMP|" $TMPDIR/$FILE
-    done
+  if [ $MAGISK_VER_CODE -gt 18100 ]; then
+    MMODULEROOT=$NVBASE/modules
+    $BOOTMODE && MOD_VER=$NVBASE/modules/$MODID/module.prop
   else
-    COREPATH=$MOUNTPATH/.core; MOD_VER=$MODPATH/module.prop; MMODULEROOT=$MAGISKTMP/img
+    MMODULEROOT=$MAGISKTMP/img
+    $BOOTMODE && MOD_VER=$MAGISKTMP/img/$MODID/module.prop
   fi
   [ $API -ge 26 ] && sed -i "s/OREONEW=false/OREONEW=true/" $TMPDIR/post-fs-data.sh
 
@@ -166,7 +159,7 @@ on_install() {
   
   ui_print "- Installing Audio Modification Library"
   # Create mod paths
-  mktouch $COREPATH/aml/mods/modlist
+  mktouch $NVBASE/aml/mods/modlist
   mktouch $MODPATH/system.prop
   
   ui_print "   Searching for supported audio mods..."
@@ -209,7 +202,7 @@ on_install() {
   # Search magisk img for any audio mods and move relevant files (confs/pols/mixs/props) to non-mounting directory
   # Patch common aml files for each audio mod found
   PRINTED=""
-  if $BOOTMODE; then MODS="$(find $MMODULEROOT/*/system $MOUNTPATH/*/system -maxdepth 0 -type d 2>/dev/null)"; else MODS="$(find $MOUNTPATH/*/system -maxdepth 0 -type d 2>/dev/null)"; fi
+  if $BOOTMODE; then MODS="$(find $MMODULEROOT/*/system $MODULEROOT/*/system -maxdepth 0 -type d 2>/dev/null)"; else MODS="$(find $MODULEROOT/*/system -maxdepth 0 -type d 2>/dev/null)"; fi
   if [ "$MODS" ]; then
     for MOD in ${MODS}; do
       RUNONCE=false
@@ -217,7 +210,7 @@ on_install() {
       FILES=$(find $MOD -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" 2>/dev/null)
       [ -z "$FILES" ] && continue
       MODNAME=$(basename $(dirname $MOD))
-      echo "$MODNAME" >> $COREPATH/aml/mods/modlist
+      echo "$MODNAME" >> $NVBASE/aml/mods/modlist
       # Add counter scripts can use so they know if it's the first time run or not
       COUNT=1
       [ "$MODNAME" == "ainur_sauron" ] && LIBDIR="$(dirname $(find $MOD -type f -name "libbundlewrapper.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
@@ -271,7 +264,7 @@ on_install() {
                                  fi
                                done;;
         esac
-        cp_mv -m $FILE $COREPATH/aml/mods/$MODNAME/$NAME
+        cp_mv -m $FILE $NVBASE/aml/mods/$MODNAME/$NAME
       done
       # Import all props from audio mods into a common aml one
       # Check for and comment out conflicting props between the mods as well
@@ -295,7 +288,7 @@ on_install() {
             CONFPRINT=true
           fi
         done < $(dirname $MOD)/system.prop
-        cp_mv -m $(dirname $MOD)/system.prop $COREPATH/aml/mods/$MODNAME/system.prop
+        cp_mv -m $(dirname $MOD)/system.prop $NVBASE/aml/mods/$MODNAME/system.prop
       fi
     done
   else
@@ -330,24 +323,23 @@ onuninstall() {
     if [ $MAGISK_VER_CODE -gt 18100 ]; then
       local MODDIRS=$MMODULEROOT
     else
-      local MODDIRS="$MOUNTPATH $MMODULEROOT"
-    [ $MAGISK_VER_CODE -lt 18000 ] && [ -f $MMODULEROOT/.core/aml/mods/modlist ] && local COREPATH=$MMODULEROOT/.core
+      local MODDIRS="$MODULEROOT $MMODULEROOT"
     fi
   else
-    local MODDIRS=$MOUNTPATH
+    local MODDIRS=$MODULEROOT
   fi
-  [ -f $COREPATH/aml/mods/modlist ] && {
-  if [ -s $COREPATH/aml/mods/modlist ]; then
+  [ -f $NVBASE/aml/mods/modlist ] && {
+  if [ -s $NVBASE/aml/mods/modlist ]; then
     while read LINE; do
       for MODDIR in $MODDIRS; do
-        [ -d $MODDIR/$LINE ] && { for FILE in $(find $COREPATH/aml/mods/$LINE -type f 2>/dev/null); do
-          NAME=$(echo "$FILE" | sed "s|$COREPATH/aml/mods/||")
+        [ -d $MODDIR/$LINE ] && { for FILE in $(find $NVBASE/aml/mods/$LINE -type f 2>/dev/null); do
+          NAME=$(echo "$FILE" | sed "s|$NVBASE/aml/mods/||")
           [ -f "$MODDIR/$NAME" ] || cp_mv -c $FILE $MODDIR/$NAME
         done; }
       done
-    done < $COREPATH/aml/mods/modlist
+    done < $NVBASE/aml/mods/modlist
   fi; }
-  rm -rf $COREPATH/aml 
+  rm -rf $NVBASE/aml 
   $UPGRADE && { [ "$MMODULEROOT/$MODID" != "$MODPATH" ] && rm -rf $MMODULEROOT/$MODID; } || rm -rf $MODPATH $MMODULEROOT/$MODID
 }
 
