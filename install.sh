@@ -82,7 +82,7 @@ REPLACE="
 # BOOTMODE (bool): true if the module is currently installing in Magisk Manager
 # MODPATH (path): the path where your module files should be installed
 # TMPDIR (path): a place where you can temporarily store files
-# ZIP (path): your module's installation zip
+# ZIPFILE (path): your module's installation zip
 # ARCH (string): the architecture of the device. Value is either arm, arm64, x86, or x64
 # IS64BIT (bool): true if $ARCH is either arm64 or x64
 # API (int): the API level (Android version) of the device
