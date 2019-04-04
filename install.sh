@@ -129,10 +129,10 @@ print_modname() {
 
   if [ $MAGISK_VER_CODE -gt 18100 ]; then
     MMODULEROOT=$NVBASE/modules
-    $BOOTMODE && MOD_VER=$NVBASE/modules/$MODID/module.prop
+    MOD_VER=$NVBASE/modules/$MODID/module.prop
   else
     MMODULEROOT=$MAGISKTMP/img
-    $BOOTMODE && MOD_VER=$MAGISKTMP/img/$MODID/module.prop
+    $BOOTMODE && MOD_VER=$MAGISKTMP/img/$MODID/module.prop || MOD_VER=$MODPATH/module.prop
   fi
   [ $API -ge 26 ] && sed -i "s/OREONEW=false/OREONEW=true/" $TMPDIR/post-fs-data.sh
   sed -i "s|MODDIR=.*|MODDIR=$MMODULEROOT|" $TMPDIR/uninstall.sh
@@ -141,10 +141,8 @@ print_modname() {
   UNINSTALL=false; UPGRADE=false
   if [ -f "$MOD_VER" ]; then
     if [ $(grep_prop versionCode $MOD_VER) -ge $(grep_prop versionCode $TMPDIR/module.prop) ]; then
-      ui_print "- Current or newer version detected. Uninstalling!"
       UNINSTALL=true
     else
-      ui_print "- Older version detected. Upgrading!"
       UPGRADE=true; UNINSTALL=true
     fi
   fi
@@ -154,6 +152,11 @@ print_modname() {
 
 on_install() {
   if $UNINSTALL; then
+    if $UPGRADE; then
+      ui_print "- Older version detected. Upgrading!"
+    else
+      ui_print "- Current or newer version detected. Uninstalling!"
+    fi
     onuninstall
     $UPGRADE || return 0
   fi
