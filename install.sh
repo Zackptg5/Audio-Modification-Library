@@ -127,15 +127,15 @@ print_modname() {
   ui_print "      (Zackptg5, Ahrion)       "
   ui_print "*******************************"
 
-  if [ $MAGISK_VER_CODE -gt 18100 ]; then
-    MMODULEROOT=$NVBASE/modules
+  if imageless_magisk; then
+    MOUNTEDROOT=$NVBASE/modules
     MOD_VER=$NVBASE/modules/$MODID/module.prop
   else
-    MMODULEROOT=$MAGISKTMP/img
+    MOUNTEDROOT=$MAGISKTMP/img
     $BOOTMODE && MOD_VER=$MAGISKTMP/img/$MODID/module.prop || MOD_VER=$MODPATH/module.prop
   fi
   [ $API -ge 26 ] && sed -i "s/OREONEW=false/OREONEW=true/" $TMPDIR/post-fs-data.sh
-  sed -i "s|MODDIR=.*|MODDIR=$MMODULEROOT|" $TMPDIR/uninstall.sh
+  sed -i "s|MODDIR=.*|MODDIR=$MOUNTEDROOT|" $TMPDIR/uninstall.sh
 
   # Detect aml version and act accordingly
   UNINSTALL=false; UPGRADE=false
@@ -187,9 +187,13 @@ on_install() {
 
   # Copy original files to MODPATH
   if $BOOTMODE; then
-    FILES="$(find $MAGISKTMP/mirror/system $MAGISKTMP/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" 2>/dev/null)"
+    if $SYSTEM_ROOT; then
+      FILES="$(find $MAGISKTMP/mirror/system_root/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml")"
+    else
+      FILES="$(find $MAGISKTMP/mirror/system $MAGISKTMP/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml")"
+    fi
     for FILE in ${FILES}; do
-      NAME=$(echo "$FILE" | sed -e "s|$MAGISKTMP/mirror||" -e "s|/system/||")
+      NAME=$(echo "$FILE" | sed -e "s|$MAGISKTMP/mirror||" -e "s|/system_root||" -e "s|/system/||")
       cp_mv -c $FILE $MODPATH/system/$NAME
     done
   else
@@ -199,6 +203,7 @@ on_install() {
       cp_mv -c $FILE $MODPATH$NAME
     done
   fi
+  
   # Comment out music_helper and sa3d (samsung equivalent)
   for FILE in $(find $MODPATH/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml"); do
     osp_detect $FILE
@@ -206,7 +211,7 @@ on_install() {
   # Search magisk img for any audio mods and move relevant files (confs/pols/mixs/props) to non-mounting directory
   # Patch common aml files for each audio mod found
   PRINTED=""
-  if $BOOTMODE; then MODS="$(find $MMODULEROOT/*/system $MODULEROOT/*/system -maxdepth 0 -type d 2>/dev/null)"; else MODS="$(find $MODULEROOT/*/system -maxdepth 0 -type d 2>/dev/null)"; fi
+  if $BOOTMODE; then MODS="$(find $MOUNTEDROOT/*/system $MODULEROOT/*/system -maxdepth 0 -type d 2>/dev/null)"; else MODS="$(find $MODULEROOT/*/system -maxdepth 0 -type d 2>/dev/null)"; fi
   if [ "$MODS" ]; then
     for MOD in ${MODS}; do
       RUNONCE=false
@@ -287,7 +292,7 @@ on_install() {
             $CONFPRINT || { ui_print " "
             ui_print "   ! Conflicting props found !"
             ui_print "   ! Conflicting props will be commented out !"
-            ui_print "   ! Check the conflicting props file at $MMODULEROOT/aml/system.prop"
+            ui_print "   ! Check the conflicting props file at $MOUNTEDROOT/aml/system.prop"
             ui_print " "; }
             CONFPRINT=true
           fi
@@ -325,9 +330,9 @@ onuninstall() {
   # Restore all relevant audio files to their respective mod directories (if the mod still exists)
   if $BOOTMODE; then
     if [ $MAGISK_VER_CODE -gt 18100 ]; then
-      local MODDIRS=$MMODULEROOT
+      local MODDIRS=$MOUNTEDROOT
     else
-      local MODDIRS="$MODULEROOT $MMODULEROOT"
+      local MODDIRS="$MODULEROOT $MOUNTEDROOT"
     fi
   else
     local MODDIRS=$MODULEROOT
@@ -344,7 +349,7 @@ onuninstall() {
     done < $NVBASE/aml/mods/modlist
   fi; }
   rm -rf $NVBASE/aml 
-  $UPGRADE && { [ "$MMODULEROOT/$MODID" != "$MODPATH" ] && rm -rf $MMODULEROOT/$MODID; } || rm -rf $MODPATH $MMODULEROOT/$MODID
+  $UPGRADE && { [ "$MOUNTEDROOT/$MODID" != "$MODPATH" ] && rm -rf $MOUNTEDROOT/$MODID; } || rm -rf $MODPATH $MOUNTEDROOT/$MODID
 }
 
 # You can add more functions to assist your custom script code
