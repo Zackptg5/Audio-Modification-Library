@@ -33,11 +33,11 @@ osp_detect() {
             EFFECTS=$(sed -n "/^output_session_processing {/,/^}/ {/^$SPACES\music {/,/^$SPACES}/p}" $1 | grep -E "^$SPACES +[A-Za-z]+" | sed -r "s/( *.*) .*/\1/g")
             for EFFECT in ${EFFECTS}; do
               SPACES=$(sed -n "/^effects {/,/^}/ {/^ *$EFFECT {/p}" $1 | sed -r "s/( *).*/\1/")
-              [ "$EFFECT" != "atmos" ] && sed -i "/^effects {/,/^}/ {/^$SPACES$EFFECT {/,/^$SPACES}/d}" $1
+              [ "$EFFECT" != "atmos" -a "$EFFECT" != "dtsaudio" ] && sed -i "/^effects {/,/^}/ {/^$SPACES$EFFECT {/,/^$SPACES}/d}" $1
             done;;
     *.xml) EFFECTS=$(sed -n "/^ *<postprocess>$/,/^ *<\/postprocess>$/ {/^ *<stream type=\"music\">$/,/^ *<\/stream>$/ {/<stream type=\"music\">/d; /<\/stream>/d; s/<apply effect=\"//g; s/\"\/>//g; s/ *//g; p}}" $1)
             for EFFECT in ${EFFECTS}; do
-              [ "$EFFECT" != "atmos" ] && sed -i "/^\( *\)<apply effect=\"$EFFECT\"\/>/d" $1
+              [ "$EFFECT" != "atmos" -a "$EFFECT" != "dtsaudio" ] && sed -i "/^\( *\)<apply effect=\"$EFFECT\"\/>/d" $1
             done;;
   esac
 }
