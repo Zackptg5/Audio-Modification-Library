@@ -121,19 +121,11 @@ on_install() {
   mkdir $MODPATH/tools
   unzip -oj "$ZIPFILE" "tools/$ARCH32/*" -d $MODPATH/tools >&2
   export PATH=$MODPATH/tools:$PATH
-
-  # Copy original files to MODPATH
-  $BOOTMODE && local ORIGDIR="$MAGISKTMP/mirror" ARGS="$ORIGDIR/system $ORIGDIR/vendor" || local ARGS="-L /system"
-  FILES="$(find $ARGS -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" 2>/dev/null)"
-  for FILE in ${FILES}; do
-    $BOOTMODE && NAME=$(echo "$FILE" | sed -e "s|$MAGISKTMP/mirror||" -e "s|/vendor/|/system/vendor/|") || NAME=$FILE
-    cp_mv -c $FILE $MODPATH$NAME
-  done
   
   # Search magisk img for any audio mods and move relevant files (confs/pols/mixs/props) to non-mounting directory
   # Patch common aml files for each audio mod found
   ui_print "   Searching for supported audio mods..."
-  $BOOTMODE && local ARGS="$NVBASE/modules/*/system $MODULEROOT/*/system" || local ARGS="$MODULEROOT/*/system"
+  $BOOTMODE && local ORIGDIR="$MAGISKTMP/mirror" ARGS="$NVBASE/modules/*/system $MODULEROOT/*/system" || local ARGS="$MODULEROOT/*/system"
   MODS="$(find $ARGS -maxdepth 0 -type d 2>/dev/null)"
   if [ "$MODS" ]; then
     for MOD in ${MODS}; do
@@ -145,7 +137,9 @@ on_install() {
       echo "$MODNAME" >> $NVBASE/aml/mods/modlist
       for FILE in ${FILES}; do
         NAME=$(echo "$FILE" | sed "s|$MOD|system|")
-        diff3 -m $MODPATH/$NAME $ORIGDIR/$NAME $FILE > $TMPDIR/tmp
+        $BOOTMODE && ONAME=$ORIGDIR/$(echo "$NAME" | sed "s|system/vendor|vendor|") || ONAME=$ORIGDIR/$NAME
+        [ -f $MODPATH/$NAME ] || cp_mv -c $ONAME $MODPATH/$NAME
+        diff3 -m $MODPATH/$NAME $ONAME $FILE > $TMPDIR/tmp
         # Process out conflicts (from end of file up)
         while true; do
           local i=$(sed -n "/^<<<<<<</=" $TMPDIR/tmp | head -n1)

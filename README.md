@@ -4,6 +4,7 @@ AudModLib is a compatibility framework that allows the seamless integration of m
 ## Change Log
 ### v3.0 - xx.xx.2020
 * Complete rewrite of mod - now uses diffutils, should automatically detect all audio mods now with any need for "aml compatibility" or whatever like before
+* Only copy files needed - no more copying all audio files to aml mod directory
 
 ### v2.5 - 12.30.2019
 * Update to new magisk module template - compatible with magisk 19+ only

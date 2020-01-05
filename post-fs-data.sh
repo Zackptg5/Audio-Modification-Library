@@ -43,7 +43,9 @@ main() {
       $LAST && [ ! "$(grep "$MODNAME" $NVBASE/aml/mods/modlist)" ] && echo "$MODNAME" >> $NVBASE/aml/mods/modlist
       for FILE in ${FILES}; do
         NAME=$(echo "$FILE" | sed "s|$MOD|system|")
-        diff3 -m $MODPATH/$NAME $MAGISKTMP/mirror/$NAME $FILE > $MODPATH/tmp
+        ONAME=$MAGISKTMP/mirror/$(echo "$NAME" | sed "s|system/vendor|vendor|")
+        [ -f $MODPATH/$NAME ] || cp_mv -c $ONAME $MODPATH/$NAME
+        diff3 -m $MODPATH/$NAME $ONAME $FILE > $MODPATH/tmp
         # Process out conflicts
         local LN=$(sed -n "/^<<<<<<</=" $MODPATH/tmp | tr ' ' '\n'| tac |tr '\n' ' ') LN2=$(sed -n "/^>>>>>>>/=" $MODPATH/tmp | tr ' ' '\n'| tac |tr '\n' ' ')
         while true; do
@@ -110,11 +112,6 @@ if $REMPATCH; then
   for MODNAME in ${MODS}; do
     rm -rf $NVBASE/aml/mods/$MODNAME
     sed -i "/$MODNAME/d" $NVBASE/aml/mods/modlist
-  done
-  FILES="$(find $MAGISKTMP/mirror/system $MAGISKTMP/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml")"
-  for FILE in ${FILES}; do
-    NAME=$(echo "$FILE" | sed -e "s|$MAGISKTMP/mirror||" -e "s|/system/||")
-    cp_mv -c $FILE $MODPATH/system/$NAME
   done
   main "$NVBASE/aml/mods/*/system"
 elif $NEWPATCH; then
