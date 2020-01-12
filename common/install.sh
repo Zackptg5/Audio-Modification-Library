@@ -1,4 +1,3 @@
-[ $API -ge 26 ] && sed -i "s/OREONEW=false/OREONEW=true/" $MODPATH/post-fs-data.sh
 mktouch $NVBASE/aml/mods/modlist
 touch $MODPATH/system.prop
 mkdir -p $MODPATH/tools
@@ -28,7 +27,7 @@ if [ "$MODS" ]; then
         [ -z $i ] && break
         j=$(sed -n "/^>>>>>>>/=" $TMPDIR/tmp | head -n1)
         sed -n '/^<<<<<<</,/^>>>>>>>/p; /^>>>>>>>/q' $TMPDIR/tmp > $TMPDIR/tmp2
-         # Remove conflict from tmpfile
+        # Remove conflict from tmpfile
         sed -i "$i,$j d" $TMPDIR/tmp
         i=$((i-1))
         # Check if conflict was due to deletion

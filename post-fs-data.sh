@@ -9,10 +9,6 @@ MODPATH=${0%/*}
 MODDIR=$(dirname $MODPATH)
 NVBASE=/data/adb
 MAGISKTMP=/sbin/.magisk
-REMPATCH=false
-NEWPATCH=false
-OREONEW=false
-MODS=""
 export PATH=$MODPATH/tools:$PATH
 
 #Functions
@@ -46,26 +42,48 @@ main() {
         ONAME=$MAGISKTMP/mirror/$(echo "$NAME" | sed "s|system/vendor|vendor|")
         [ -f $MODPATH/$NAME ] || cp_mv -c $ONAME $MODPATH/$NAME
         diff3 -m $MODPATH/$NAME $ONAME $FILE > $MODPATH/tmp
-        # Process out conflicts
-        local LN=$(sed -n "/^<<<<<<</=" $MODPATH/tmp | tr ' ' '\n'| tac |tr '\n' ' ') LN2=$(sed -n "/^>>>>>>>/=" $MODPATH/tmp | tr ' ' '\n'| tac |tr '\n' ' ')
         while true; do
           local i=$(sed -n "/^<<<<<<</=" $MODPATH/tmp | head -n1)
           [ -z $i ] && break
           local j=$(sed -n "/^>>>>>>>/=" $MODPATH/tmp | head -n1)
           sed -n '/^<<<<<<</,/^>>>>>>>/p; /^>>>>>>>/q' $MODPATH/tmp > $MODPATH/tmp2
-          sed -i -e '/^<<<<<<</d' -e '/^|||||||/d' -e '/^>>>>>>>/d' $MODPATH/tmp2
-          awk '/^=======/ {exit} {print}' $MODPATH/tmp2 > $MODPATH/tmp3
-          sed -i '1,/^=======/d' $MODPATH/tmp2
           sed -i "$i,$j d" $MODPATH/tmp
           i=$((i-1))
-          if [ "$(cat $MODPATH/tmp3 | sed -r 's|.*name="(.*)" .*|\1|' | head -n1)" == "$(cat $MODPATH/tmp2 | sed -r 's|.*name="(.*)" .*|\1|' | head -n1)" ]; then
-            sed -i "$i r $MODPATH/tmp3" $MODPATH/tmp
-          else
-            sed -i "$i r $MODPATH/tmp3" $MODPATH/tmp
+          sed -n '/^|||||||/,/^=======/p; /^=======/q' $MODPATH/tmp2 > $MODPATH/tmp3
+          sed -i -e '/^|||||||/d' -e '/^=======/d' $MODPATH/tmp3
+          if [ -s $MODPATH/tmp3 ]; then
+            sed -n '/^<<<<<<</,/^|||||||/p; /^|||||||/q' $MODPATH/tmp2 > $MODPATH/tmp4
+            sed -i -e '/^<<<<<<</d' -e '/^|||||||/d' $MODPATH/tmp4
+            if [ ! -s $MODPATH/tmp4 ]; then
+              sed -n '/^=======/,/^>>>>>>>/p' $MODPATH/tmp2 > $MODPATH/tmp4
+              sed -i -e '/^=======/d' -e '/^>>>>>>>/d' $MODPATH/tmp4
+            fi
+            grep -Fvxf $MODPATH/tmp3 $MODPATH/tmp4 > $MODPATH/tmp2
             sed -i "$i r $MODPATH/tmp2" $MODPATH/tmp
+            continue
+          else
+            sed -i -e '/^<<<<<<</d' -e '/^|||||||/d' -e '/^>>>>>>>/d' $MODPATH/tmp2
+            awk '/^=======/ {exit} {print}' $MODPATH/tmp2 > $MODPATH/tmp3
+            sed -i '1,/^=======/d' $MODPATH/tmp2
           fi
+          case $NAME in
+          *.conf)
+            if [ "$(grep '[\S]* {' $MODPATH/tmp3 | head -n1 | sed 's| {||')" == "$(grep '[\S]* {' $MODPATH/tmp2 | head -n1 | sed 's| {||')" ]; then
+             sed -i "$i r $MODPATH/tmp3" $MODPATH/tmp
+            else
+              sed -i "$i r $MODPATH/tmp3" $MODPATH/tmp
+              sed -i "$i r $MODPATH/tmp2" $MODPATH/tmp
+            fi;;
+          *)
+            if [ "$(grep 'name=' $MODPATH/tmp3 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" == "$(grep 'name=' $MODPATH/tmp2 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" ]; then
+            sed -i "$i r $MODPATH/tmp3" $MODPATH/tmp
+            else
+              sed -i "$i r $MODPATH/tmp3" $MODPATH/tmp
+              sed -i "$i r $MODPATH/tmp2" $MODPATH/tmp
+            fi;;
+          esac
         done
-        rm -f $MODPATH/tmp2 $MODPATH/tmp3
+        rm -f $MODPATH/tmp2 $MODPATH/tmp3 $MODPATH/tmp4 2>/dev/null
         mv -f $MODPATH/tmp $MODPATH/$NAME
         $LAST && cp_mv -m $FILE $NVBASE/aml/mods/$MODNAME/$NAME
       done
@@ -90,7 +108,7 @@ main() {
   [ -s $MODPATH/system.prop ] || rm -f $MODPATH/system.prop
 }
 
-#Script logic
+REMPATCH=false; NEWPATCH=false
 #Determine if an audio mod was removed
 while read LINE; do
   if [ ! -d $MODDIR/$LINE ]; then
