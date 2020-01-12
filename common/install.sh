@@ -15,6 +15,7 @@ if [ "$MODS" ]; then
     [ -z "$FILES" ] && continue
     ui_print "    Found $(sed -n "s/^name=//p" $(dirname $MOD)/module.prop)! Patching..."
     MODNAME=$(basename $(dirname $MOD))
+    [ "$MODNAME" == "ainur_narsil" ] && set -x
     echo "$MODNAME" >> $NVBASE/aml/mods/modlist
     for FILE in ${FILES}; do
       NAME=$(echo "$FILE" | sed "s|$MOD|system|")
@@ -55,7 +56,7 @@ if [ "$MODS" ]; then
             [ "$TMP2" ] && l=$(sed -n "\|^$TMP2|=" $TMPDIR/tmp5 | tail -n1)
           fi
           if [ -s $TMPDIR/tmp5 ]; then
-            if [ "$(grep "$(cat $TMPDIR/tmp3 | sed 's/^ *//')" $TMPDIR/tmp4)" = "$(cat $TMPDIR/tmp4)" ] && [ ! "$(grep -Ff $TMPDIR/tmp5 $TMPDIR/tmp4)" ]; then
+            if [ "$(grep "$(cat $TMPDIR/tmp3 | sed 's/^ *//')" $TMPDIR/tmp4)" == "$(cat $TMPDIR/tmp4)" ] && [ ! "$(grep -Ff $TMPDIR/tmp5 $TMPDIR/tmp4)" ]; then
               j=$((k-1))
               [ "$TMP2" ] && sed -i -e "$k,$l d" -e "$j r $TMPDIR/tmp4" $TMPDIR/tmp5 || sed -i -e "$k d" -e "$j r $TMPDIR/tmp4" $TMPDIR/tmp5
               mv -f $TMPDIR/tmp5 $TMPDIR/tmp2
@@ -98,6 +99,7 @@ if [ "$MODS" ]; then
       mv -f $TMPDIR/tmp $MODPATH/$NAME
       install -D $FILE $NVBASE/aml/mods/$MODNAME/$NAME; rm -f $FILE
     done
+    [ "$MODNAME" == "ainur_narsil" ] && set +x
     # Import all props from audio mods into a common aml one
     # Check for and comment out conflicting props between the mods as well
     if [ -f $(dirname $MOD)/system.prop ]; then

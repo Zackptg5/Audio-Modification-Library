@@ -71,7 +71,7 @@ main() {
               [ "$TMP2" ] && l=$(sed -n "\|^$TMP2|=" $TMPDIR/tmp5 | tail -n1)
             fi
             if [ -s $TMPDIR/tmp5 ]; then
-              if [ "$(grep "$(cat $TMPDIR/tmp3 | sed 's/^ *//')" $TMPDIR/tmp4)" = "$(cat $TMPDIR/tmp4)" ] && [ ! "$(grep -Ff $TMPDIR/tmp5 $TMPDIR/tmp4)" ]; then
+              if [ "$(grep "$(cat $TMPDIR/tmp3 | sed 's/^ *//')" $TMPDIR/tmp4)" == "$(cat $TMPDIR/tmp4)" ] && [ ! "$(grep -Ff $TMPDIR/tmp5 $TMPDIR/tmp4)" ]; then
                 j=$((k-1))
                 [ "$TMP2" ] && sed -i -e "$k,$l d" -e "$j r $TMPDIR/tmp4" $TMPDIR/tmp5 || sed -i -e "$k d" -e "$j r $TMPDIR/tmp4" $TMPDIR/tmp5
                 mv -f $TMPDIR/tmp5 $TMPDIR/tmp2
