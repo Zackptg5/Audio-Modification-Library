@@ -35,41 +35,68 @@ if [ "$MODS" ]; then
         sed -i -e '/^|||||||/d' -e '/^=======/d' $TMPDIR/tmp3
         # Process conflicts
         if [ -s $TMPDIR/tmp3 ]; then
+          # tmp2=original patch, tmp3=deletion, tmp4=old, tmp5=new
+          [ $(wc -l <$TMPDIR/tmp3) -eq 1 ] && { TMP2=""; TMP="$(cat $TMPDIR/tmp3)"; } || { TMP="$(cat $TMPDIR/tmp3 | head -n1)"; TMP2="$(cat $TMPDIR/tmp3 | tail -n1)"; }
           sed -n '/^<<<<<<</,/^|||||||/p; /^|||||||/q' $TMPDIR/tmp2 > $TMPDIR/tmp4
           sed -i -e '/^<<<<<<</d' -e '/^|||||||/d' $TMPDIR/tmp4
+          sed -n '/^=======/,/^>>>>>>>/p; /^>>>>>>>/q' $TMPDIR/tmp2 > $TMPDIR/tmp5
+          sed -i -e '/^=======/d' -e '/^>>>>>>>/d' $TMPDIR/tmp5
           if [ ! -s $TMPDIR/tmp4 ]; then
             sed -n '/^=======/,/^>>>>>>>/p' $TMPDIR/tmp2 > $TMPDIR/tmp4
             sed -i -e '/^=======/d' -e '/^>>>>>>>/d' $TMPDIR/tmp4
+            sed -n '/^<<<<<<</,/^>>>>>>>/p; /^|||||||/q' $TMPDIR/tmp2 > $TMPDIR/tmp5
+            sed -i -e '/^<<<<<<</d' -e '/^|||||||/d' $TMPDIR/tmp5
+            if [ -s $TMPDIR/tmp5 ]; then
+              k=$(sed -n "\|^$TMP|=" $TMPDIR/tmp5 | head -n1)
+              [ "$TMP2" ] && l=$(sed -n "\|^$TMP2|=" $TMPDIR/tmp5 | head -n1)
+            fi
+          elif [ -s $TMPDIR/tmp5 ]; then
+            k=$(sed -n "\|^$TMP|=" $TMPDIR/tmp5 | tail -n1)
+            [ "$TMP2" ] && l=$(sed -n "\|^$TMP2|=" $TMPDIR/tmp5 | tail -n1)
           fi
-          grep -Fvxf $TMPDIR/tmp3 $TMPDIR/tmp4 > $TMPDIR/tmp2
+          if [ -s $TMPDIR/tmp5 ]; then
+            if [ "$(grep "$(cat $TMPDIR/tmp3 | sed 's/^ *//')" $TMPDIR/tmp4)" = "$(cat $TMPDIR/tmp4)" ] && [ ! "$(grep -Ff $TMPDIR/tmp5 $TMPDIR/tmp4)" ]; then
+              j=$((k-1))
+              [ "$TMP2" ] && sed -i -e "$k,$l d" -e "$j r $TMPDIR/tmp4" $TMPDIR/tmp5 || sed -i -e "$k d" -e "$j r $TMPDIR/tmp4" $TMPDIR/tmp5
+              mv -f $TMPDIR/tmp5 $TMPDIR/tmp2
+            else
+              mv -f $TMPDIR/tmp4 $TMPDIR/tmp2
+            fi
+          else
+            grep -Fvxf $TMPDIR/tmp3 $TMPDIR/tmp4 > $TMPDIR/tmp2
+          fi
           sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
           continue
         else
+          # tmp3=old, tmp2=new
           sed -i -e '/^<<<<<<</d' -e '/^|||||||/d' -e '/^>>>>>>>/d' $TMPDIR/tmp2
           awk '/^=======/ {exit} {print}' $TMPDIR/tmp2 > $TMPDIR/tmp3
           sed -i '1,/^=======/d' $TMPDIR/tmp2
         fi
+        # Scenario 1: files are same - do nothing, 2: Add something new - add it, 3: They're different - keep both, 4: Removal
         case $NAME in
           *.conf)
-            if [ "$(grep '[\S]* {' $TMPDIR/tmp3 | head -n1 | sed 's| {||')" == "$(grep '[\S]* {' $TMPDIR/tmp2 | head -n1 | sed 's| {||')" ]; then
+          if [ "$(grep '[\S]* {' $TMPDIR/tmp3 | head -n1 | sed 's| {||')" == "$(grep '[\S]* {' $TMPDIR/tmp2 | head -n1 | sed 's| {||')" ]; then
               sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
-            else
-              # Different entries, keep both
+          elif [ ! "$(cat $TMPDIR/tmp3)" ]; then
+              sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
+          elif [ "$(cat $TMPDIR/tmp2)" ]; then
               sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
               sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
-            fi;;
+          fi;;
           *)
-            if [ "$(grep 'name=' $TMPDIR/tmp3 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" == "$(grep 'name=' $TMPDIR/tmp2 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" ]; then
+          if [ "$(grep 'name=' $TMPDIR/tmp3 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" == "$(grep 'name=' $TMPDIR/tmp2 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" ]; then
               sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
-            else
-              # Different entries, keep both
+          elif [ ! "$(cat $TMPDIR/tmp3)" ]; then
+              sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
+          elif [ "$(cat $TMPDIR/tmp2)" ]; then
               sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
               sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
-            fi;;
-        esac
-    done
-    mv -f $TMPDIR/tmp $MODPATH/$NAME
-    install -D $FILE $NVBASE/aml/mods/$MODNAME/$NAME; rm -f $FILE
+          fi;;
+        esac        
+      done
+      mv -f $TMPDIR/tmp $MODPATH/$NAME
+      install -D $FILE $NVBASE/aml/mods/$MODNAME/$NAME; rm -f $FILE
     done
     # Import all props from audio mods into a common aml one
     # Check for and comment out conflicting props between the mods as well

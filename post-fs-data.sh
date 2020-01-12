@@ -52,14 +52,36 @@ main() {
           sed -n '/^|||||||/,/^=======/p; /^=======/q' $MODPATH/tmp2 > $MODPATH/tmp3
           sed -i -e '/^|||||||/d' -e '/^=======/d' $MODPATH/tmp3
           if [ -s $MODPATH/tmp3 ]; then
+            [ $(wc -l <$TMPDIR/tmp3) -eq 1 ] && { TMP2=""; TMP="$(cat $TMPDIR/tmp3)"; } || { TMP="$(cat $TMPDIR/tmp3 | head -n1)"; TMP2="$(cat $TMPDIR/tmp3 | tail -n1)"; }
             sed -n '/^<<<<<<</,/^|||||||/p; /^|||||||/q' $MODPATH/tmp2 > $MODPATH/tmp4
             sed -i -e '/^<<<<<<</d' -e '/^|||||||/d' $MODPATH/tmp4
+            sed -n '/^=======/,/^>>>>>>>/p; /^>>>>>>>/q' $TMPDIR/tmp2 > $TMPDIR/tmp5
+            sed -i -e '/^=======/d' -e '/^>>>>>>>/d' $TMPDIR/tmp5
             if [ ! -s $MODPATH/tmp4 ]; then
               sed -n '/^=======/,/^>>>>>>>/p' $MODPATH/tmp2 > $MODPATH/tmp4
               sed -i -e '/^=======/d' -e '/^>>>>>>>/d' $MODPATH/tmp4
+              sed -n '/^<<<<<<</,/^>>>>>>>/p; /^|||||||/q' $TMPDIR/tmp2 > $TMPDIR/tmp5
+              sed -i -e '/^<<<<<<</d' -e '/^|||||||/d' $TMPDIR/tmp5
+              if [ -s $TMPDIR/tmp5 ]; then
+                k=$(sed -n "\|^$TMP|=" $TMPDIR/tmp5 | head -n1)
+                [ "$TMP2" ] && l=$(sed -n "\|^$TMP2|=" $TMPDIR/tmp5 | head -n1)
+              fi
+            elif [ -s $TMPDIR/tmp5 ]; then
+              k=$(sed -n "\|^$TMP|=" $TMPDIR/tmp5 | tail -n1)
+              [ "$TMP2" ] && l=$(sed -n "\|^$TMP2|=" $TMPDIR/tmp5 | tail -n1)
             fi
-            grep -Fvxf $MODPATH/tmp3 $MODPATH/tmp4 > $MODPATH/tmp2
-            sed -i "$i r $MODPATH/tmp2" $MODPATH/tmp
+            if [ -s $TMPDIR/tmp5 ]; then
+              if [ "$(grep "$(cat $TMPDIR/tmp3 | sed 's/^ *//')" $TMPDIR/tmp4)" = "$(cat $TMPDIR/tmp4)" ] && [ ! "$(grep -Ff $TMPDIR/tmp5 $TMPDIR/tmp4)" ]; then
+                j=$((k-1))
+                [ "$TMP2" ] && sed -i -e "$k,$l d" -e "$j r $TMPDIR/tmp4" $TMPDIR/tmp5 || sed -i -e "$k d" -e "$j r $TMPDIR/tmp4" $TMPDIR/tmp5
+                mv -f $TMPDIR/tmp5 $TMPDIR/tmp2
+              else
+                mv -f $TMPDIR/tmp4 $TMPDIR/tmp2
+              fi
+            else
+              grep -Fvxf $TMPDIR/tmp3 $TMPDIR/tmp4 > $TMPDIR/tmp2
+            fi
+            sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
             continue
           else
             sed -i -e '/^<<<<<<</d' -e '/^|||||||/d' -e '/^>>>>>>>/d' $MODPATH/tmp2
@@ -68,18 +90,22 @@ main() {
           fi
           case $NAME in
           *.conf)
-            if [ "$(grep '[\S]* {' $MODPATH/tmp3 | head -n1 | sed 's| {||')" == "$(grep '[\S]* {' $MODPATH/tmp2 | head -n1 | sed 's| {||')" ]; then
-             sed -i "$i r $MODPATH/tmp3" $MODPATH/tmp
-            else
-              sed -i "$i r $MODPATH/tmp3" $MODPATH/tmp
-              sed -i "$i r $MODPATH/tmp2" $MODPATH/tmp
+            if [ "$(grep '[\S]* {' $TMPDIR/tmp3 | head -n1 | sed 's| {||')" == "$(grep '[\S]* {' $TMPDIR/tmp2 | head -n1 | sed 's| {||')" ]; then
+                sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
+            elif [ ! "$(cat $TMPDIR/tmp3)" ]; then
+                sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
+            elif [ "$(cat $TMPDIR/tmp2)" ]; then
+                sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
+                sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
             fi;;
-          *)
-            if [ "$(grep 'name=' $MODPATH/tmp3 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" == "$(grep 'name=' $MODPATH/tmp2 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" ]; then
-            sed -i "$i r $MODPATH/tmp3" $MODPATH/tmp
-            else
-              sed -i "$i r $MODPATH/tmp3" $MODPATH/tmp
-              sed -i "$i r $MODPATH/tmp2" $MODPATH/tmp
+            *)
+            if [ "$(grep 'name=' $TMPDIR/tmp3 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" == "$(grep 'name=' $TMPDIR/tmp2 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" ]; then
+                sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
+            elif [ ! "$(cat $TMPDIR/tmp3)" ]; then
+                sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
+            elif [ "$(cat $TMPDIR/tmp2)" ]; then
+                sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
+                sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
             fi;;
           esac
         done
