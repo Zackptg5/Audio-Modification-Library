@@ -52,23 +52,6 @@ if [ "$MODS" ]; then
         case $NAME in
           *.conf)
             if [ "$(grep '[\S]* {' $TMPDIR/tmp3 | head -n1 | sed 's| {||')" == "$(grep '[\S]* {' $TMPDIR/tmp2 | head -n1 | sed 's| {||')" ]; then
-              # Same entry listed slightly differently, keep only one
-              # ui_print "Which to keep?"
-              # ui_print "1:"
-              # while read LINE; do
-              #   ui_print "$LINE"
-              # done < $TMPDIR/tmp3
-              # ui_print ""
-              # ui_print "2:"
-              # while read LINE; do
-              #   ui_print "$LINE"
-              # done < $TMPDIR/tmp2
-              # ui_print " "
-              # if $VKEL; then
-              #   sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
-              # else
-              #   sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
-              # fi
               sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
             else
               # Different entries, keep both
@@ -77,23 +60,6 @@ if [ "$MODS" ]; then
             fi;;
           *)
             if [ "$(grep 'name=' $TMPDIR/tmp3 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" == "$(grep 'name=' $TMPDIR/tmp2 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" ]; then
-              # Determine if mod value is conflicting - go with priority if exists, ask user otherwise
-              # ui_print "Which to keep?"
-              # ui_print "1:"
-              # while read LINE; do
-              #   ui_print "$LINE"
-              # done < $TMPDIR/tmp3
-              # ui_print ""
-              # ui_print "2:"
-              # while read LINE; do
-              #   ui_print "$LINE"
-              # done < $TMPDIR/tmp2
-              # ui_print " "
-              # if $VKEL; then
-              #   sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
-              # else
-              #   sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
-              # fi
               sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
             else
               # Different entries, keep both
