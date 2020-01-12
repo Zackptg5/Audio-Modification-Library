@@ -30,7 +30,7 @@ if [ "$MODS" ]; then
         # Remove conflict from tmpfile
         sed -i "$i,$j d" $TMPDIR/tmp
         i=$((i-1))
-        # Check if conflict was due to deletion
+        # Check if conflict was due to deletion (3 way conflict)
         sed -n '/^|||||||/,/^=======/p; /^=======/q' $TMPDIR/tmp2 > $TMPDIR/tmp3
         sed -i -e '/^|||||||/d' -e '/^=======/d' $TMPDIR/tmp3
         # Process conflicts
