@@ -43,45 +43,48 @@ main() {
         [ -f $MODPATH/$NAME ] || cp_mv -c $ONAME $MODPATH/$NAME
         diff3 -m $MODPATH/$NAME $ONAME $FILE > $MODPATH/tmp
         while true; do
-          local i=$(sed -n "/^<<<<<<</=" $MODPATH/tmp | head -n1)
+          i=$(sed -n "/^<<<<<<</=" $MODPATH/tmp | head -n1)
           [ -z $i ] && break
-          local j=$(sed -n "/^>>>>>>>/=" $MODPATH/tmp | head -n1)
+          j=$(sed -n "/^>>>>>>>/=" $MODPATH/tmp | head -n1)
           sed -n '/^<<<<<<</,/^>>>>>>>/p; /^>>>>>>>/q' $MODPATH/tmp > $MODPATH/tmp2
+          # Remove conflict from tmpfile
           sed -i "$i,$j d" $MODPATH/tmp
           i=$((i-1))
+          # Check if conflict was due to deletion
           sed -n '/^|||||||/,/^=======/p; /^=======/q' $MODPATH/tmp2 > $MODPATH/tmp3
           sed -i -e '/^|||||||/d' -e '/^=======/d' $MODPATH/tmp3
+          # Process conflicts
           if [ -s $MODPATH/tmp3 ]; then
-            [ $(wc -l <$TMPDIR/tmp3) -eq 1 ] && { TMP2=""; TMP="$(cat $TMPDIR/tmp3)"; } || { TMP="$(cat $TMPDIR/tmp3 | head -n1)"; TMP2="$(cat $TMPDIR/tmp3 | tail -n1)"; }
+            # tmp2=original patch, tmp3=deletion, tmp4/5=old or new depending
+            [ $(wc -l <$MODPATH/tmp3) -eq 1 ] && { TMP2=""; TMP="$(cat $MODPATH/tmp3)"; } || { TMP="$(cat $MODPATH/tmp3 | head -n1)"; TMP2="$(cat $MODPATH/tmp3 | tail -n1)"; }
             sed -n '/^<<<<<<</,/^|||||||/p; /^|||||||/q' $MODPATH/tmp2 > $MODPATH/tmp4
             sed -i -e '/^<<<<<<</d' -e '/^|||||||/d' $MODPATH/tmp4
-            sed -n '/^=======/,/^>>>>>>>/p; /^>>>>>>>/q' $TMPDIR/tmp2 > $TMPDIR/tmp5
-            sed -i -e '/^=======/d' -e '/^>>>>>>>/d' $TMPDIR/tmp5
+            sed -n '/^=======/,/^>>>>>>>/p; /^>>>>>>>/q' $MODPATH/tmp2 > $MODPATH/tmp5
+            sed -i -e '/^=======/d' -e '/^>>>>>>>/d' $MODPATH/tmp5
             if [ ! -s $MODPATH/tmp4 ]; then
               sed -n '/^=======/,/^>>>>>>>/p' $MODPATH/tmp2 > $MODPATH/tmp4
               sed -i -e '/^=======/d' -e '/^>>>>>>>/d' $MODPATH/tmp4
-              sed -n '/^<<<<<<</,/^>>>>>>>/p; /^|||||||/q' $TMPDIR/tmp2 > $TMPDIR/tmp5
-              sed -i -e '/^<<<<<<</d' -e '/^|||||||/d' $TMPDIR/tmp5
-              if [ -s $TMPDIR/tmp5 ]; then
-                k=$(sed -n "\|^$TMP|=" $TMPDIR/tmp5 | head -n1)
-                [ "$TMP2" ] && l=$(sed -n "\|^$TMP2|=" $TMPDIR/tmp5 | head -n1)
-              fi
-            elif [ -s $TMPDIR/tmp5 ]; then
-              k=$(sed -n "\|^$TMP|=" $TMPDIR/tmp5 | tail -n1)
-              [ "$TMP2" ] && l=$(sed -n "\|^$TMP2|=" $TMPDIR/tmp5 | tail -n1)
+              sed -n '/^<<<<<<</,/^>>>>>>>/p; /^|||||||/q' $MODPATH/tmp2 > $MODPATH/tmp5
+              sed -i -e '/^<<<<<<</d' -e '/^|||||||/d' $MODPATH/tmp5
             fi
-            if [ -s $TMPDIR/tmp5 ]; then
-              if [ "$(grep "$(cat $TMPDIR/tmp3 | sed 's/^ *//')" $TMPDIR/tmp4)" == "$(cat $TMPDIR/tmp4)" ] && [ ! "$(grep -Ff $TMPDIR/tmp5 $TMPDIR/tmp4)" ]; then
+            if [ -s $MODPATH/tmp5 ]; then
+              if [ "$(grep "$(cat $MODPATH/tmp3 | sed 's/^ *//')" $MODPATH/tmp5)" == "$(cat $MODPATH/tmp5)" ] && [ ! "$(grep -Ff $MODPATH/tmp4 $MODPATH/tmp5)" ]; then
+                k=$(sed -n "\|^$TMP|=" $MODPATH/tmp4 | tail -n1)
                 j=$((k-1))
-                [ "$TMP2" ] && sed -i -e "$k,$l d" -e "$j r $TMPDIR/tmp4" $TMPDIR/tmp5 || sed -i -e "$k d" -e "$j r $TMPDIR/tmp4" $TMPDIR/tmp5
-                mv -f $TMPDIR/tmp5 $TMPDIR/tmp2
+                if [ "$TMP2" ]; then
+                  l=$(sed -n "\|^$TMP2|=" $MODPATH/tmp4 | tail -n1)
+                  sed -i -e "$k,$l d" -e "$j r $MODPATH/tmp5" $MODPATH/tmp4
+                else
+                  sed -i -e "$k d" -e "$j r $MODPATH/tmp5" $MODPATH/tmp4
+                fi
+                mv -f $MODPATH/tmp4 $MODPATH/tmp2
               else
-                mv -f $TMPDIR/tmp4 $TMPDIR/tmp2
+                mv -f $MODPATH/tmp5 $MODPATH/tmp2
               fi
             else
-              grep -Fvxf $TMPDIR/tmp3 $TMPDIR/tmp4 > $TMPDIR/tmp2
+              grep -Fvxf $MODPATH/tmp3 $MODPATH/tmp4 > $MODPATH/tmp2
             fi
-            sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
+            sed -i "$i r $MODPATH/tmp2" $MODPATH/tmp
             continue
           else
             sed -i -e '/^<<<<<<</d' -e '/^|||||||/d' -e '/^>>>>>>>/d' $MODPATH/tmp2
@@ -90,26 +93,26 @@ main() {
           fi
           case $NAME in
           *.conf)
-            if [ "$(grep '[\S]* {' $TMPDIR/tmp3 | head -n1 | sed 's| {||')" == "$(grep '[\S]* {' $TMPDIR/tmp2 | head -n1 | sed 's| {||')" ]; then
-                sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
-            elif [ ! "$(cat $TMPDIR/tmp3)" ]; then
-                sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
-            elif [ "$(cat $TMPDIR/tmp2)" ]; then
-                sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
-                sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
+            if [ "$(grep '[\S]* {' $MODPATH/tmp3 | head -n1 | sed 's| {||')" == "$(grep '[\S]* {' $MODPATH/tmp2 | head -n1 | sed 's| {||')" ]; then
+                sed -i "$i r $MODPATH/tmp3" $MODPATH/tmp
+            elif [ ! "$(cat $MODPATH/tmp3)" ]; then
+                sed -i "$i r $MODPATH/tmp2" $MODPATH/tmp
+            elif [ "$(cat $MODPATH/tmp2)" ]; then
+                sed -i "$i r $MODPATH/tmp3" $MODPATH/tmp
+                sed -i "$i r $MODPATH/tmp2" $MODPATH/tmp
             fi;;
             *)
-            if [ "$(grep 'name=' $TMPDIR/tmp3 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" == "$(grep 'name=' $TMPDIR/tmp2 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" ]; then
-                sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
-            elif [ ! "$(cat $TMPDIR/tmp3)" ]; then
-                sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
-            elif [ "$(cat $TMPDIR/tmp2)" ]; then
-                sed -i "$i r $TMPDIR/tmp3" $TMPDIR/tmp
-                sed -i "$i r $TMPDIR/tmp2" $TMPDIR/tmp
+            if [ "$(grep 'name=' $MODPATH/tmp3 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" == "$(grep 'name=' $MODPATH/tmp2 | head -n1 | sed -r 's|.*name="(.*)".*|\1|')" ]; then
+                sed -i "$i r $MODPATH/tmp3" $MODPATH/tmp
+            elif [ ! "$(cat $MODPATH/tmp3)" ]; then
+                sed -i "$i r $MODPATH/tmp2" $MODPATH/tmp
+            elif [ "$(cat $MODPATH/tmp2)" ]; then
+                sed -i "$i r $MODPATH/tmp3" $MODPATH/tmp
+                sed -i "$i r $MODPATH/tmp2" $MODPATH/tmp
             fi;;
           esac
         done
-        rm -f $MODPATH/tmp2 $MODPATH/tmp3 $MODPATH/tmp4 2>/dev/null
+        rm -f $MODPATH/tmp2 $MODPATH/tmp3 $MODPATH/tmp4 $MODPATH/tmp5 2>/dev/null
         mv -f $MODPATH/tmp $MODPATH/$NAME
         $LAST && cp_mv -m $FILE $NVBASE/aml/mods/$MODNAME/$NAME
       done
