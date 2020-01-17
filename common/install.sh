@@ -6,8 +6,7 @@ cp -f $MODPATH/common/addon/External-Tools/tools/$ARCH32/* $MODPATH/tools/
 # Search magisk img for any audio mods and move relevant files (confs/pols/mixs/props) to non-mounting directory
 # Patch common aml files for each audio mod found
 ui_print "   Searching for supported audio mods..."
-$BOOTMODE && ARGS="$NVBASE/modules/*/system $MODULEROOT/*/system" || ARGS="$MODULEROOT/*/system"
-MODS="$(find $ARGS -maxdepth 0 -type d 2>/dev/null)"
+MODS="$(find $NVBASE/modules/*/system $MODULEROOT/*/system -maxdepth 0 -type d 2>/dev/null)"
 if [ "$MODS" ]; then
   for MOD in ${MODS}; do
     [ "$MOD" == "$MODPATH/system" -o -f "$(dirname $MOD)/disable" ] && continue
@@ -18,7 +17,7 @@ if [ "$MODS" ]; then
     echo "$MODNAME" >> $NVBASE/aml/mods/modlist
     for FILE in ${FILES}; do
       NAME=$(echo "$FILE" | sed "s|$MOD|system|")
-      $BOOTMODE && ONAME=$ORIGDIR/$(echo "$NAME" | sed "s|system/vendor|vendor|") || ONAME=$ORIGDIR/$NAME
+      ONAME=$ORIGDIR/$(echo "$NAME" | sed "s|system/vendor|vendor|")
       [ -f $MODPATH/$NAME ] || install -D $ONAME $MODPATH/$NAME
       diff3 -m $MODPATH/$NAME $ONAME $FILE > $TMPDIR/tmp
       # Conflict shenanigans
