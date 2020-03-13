@@ -3,6 +3,12 @@ AudModLib is a compatibility framework that allows the seamless integration of m
 To uninstall, REMOVE WITH MAGISK MANAGER
 
 ## Change Log
+### v3.0 - 03.13.2020
+* Complete overhaul - most everything happens in the boot script now, no need for redunduncies
+* Added Guitardedhero's Dolby Atmos Pie/Q
+* Added Ainur DTS
+* Removed IceWizard
+
 ### v2.5 - 12.30.2019
 * Update to new magisk module template - compatible with magisk 19+ only
 

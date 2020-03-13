@@ -1,48 +1,49 @@
 #!/system/bin/sh
-# Please don't hardcode /magisk/modname/... ; instead, please use $MODDIR/...
-# This will make your scripts compatible even if Magisk change its mount point in the future
-# This script will be executed in post-fs-data mode
-# More info in the main Magisk thread
+# Variables
+MODPATH=
+MAGISKTMP=
+API=
+IS64BIT=
+libdir=
+set -x 2>$MODPATH/debug.log
+echo `date`
+moddir=$(dirname $MODPATH)
+amldir=/data/adb/aml
 
-#Variables
-MODPATH=${0%/*}
-MODDIR=$(dirname $MODPATH)
-NVBASE=/data/adb
-MAGISKTMP=/sbin/.magisk
-REMPATCH=false
-NEWPATCH=false
-OREONEW=false
-MODS=""
-
-#Functions
+# Functions
 cp_mv() {
   if [ -z $4 ]; then
     mkdir -p "$(dirname $3)"
-    cp -f "$2" "$3"
+    cp -af "$2" "$3"
   else
     mkdir -p "$(dirname $3)"
-    cp -f "$2" "$3"
+    cp -af "$2" "$3"
     chmod $4 "$3"
   fi
   [ "$1" == "-m" ] && rm -f $2
   return 0
 }
 osp_detect() {
+  local spaces effects
   case $1 in
-    *.conf) SPACES=$(sed -n "/^output_session_processing {/,/^}/ {/^ *music {/p}" $1 | sed -r "s/( *).*/\1/")
-            EFFECTS=$(sed -n "/^output_session_processing {/,/^}/ {/^$SPACES\music {/,/^$SPACES}/p}" $1 | grep -E "^$SPACES +[A-Za-z]+" | sed -r "s/( *.*) .*/\1/g")
-            for EFFECT in ${EFFECTS}; do
-              SPACES=$(sed -n "/^effects {/,/^}/ {/^ *$EFFECT {/p}" $1 | sed -r "s/( *).*/\1/")
-              [ "$EFFECT" != "atmos" -a "$EFFECT" != "dtsaudio" ] && sed -i "/^effects {/,/^}/ {/^$SPACES$EFFECT {/,/^$SPACES}/d}" $1
-            done;;
-    *.xml) EFFECTS=$(sed -n "/^ *<postprocess>$/,/^ *<\/postprocess>$/ {/^ *<stream type=\"music\">$/,/^ *<\/stream>$/ {/<stream type=\"music\">/d; /<\/stream>/d; s/<apply effect=\"//g; s/\"\/>//g; s/ *//g; p}}" $1)
-            for EFFECT in ${EFFECTS}; do
-              [ "$EFFECT" != "atmos" -a "$EFFECT" != "dtsaudio" ] && sed -i "/^\( *\)<apply effect=\"$EFFECT\"\/>/d" $1
-            done;;
+    *.conf) spaces=$(sed -n "/^output_session_processing {/,/^}/ {/^ *music {/p}" $1 | sed -r "s/( *).*/\1/")
+            effects=$(sed -n "/^output_session_processing {/,/^}/ {/^$spaces\music {/,/^$spaces}/p}" $1 | grep -E "^$spaces +[A-Za-z]+" | sed -r "s/( *.*) .*/\1/g")
+            for effect in ${effects}; do
+              spaces=$(sed -n "/^effects {/,/^}/ {/^ *$effect {/p}" $1 | sed -r "s/( *).*/\1/")
+              [ "$effect" != "atmos" -a "$effect" != "dtsaudio" ] && sed -i "/^effects {/,/^}/ {/^$spaces$effect {/,/^$spaces}/d}" $1
+            done
+            ;;
+    *.xml) effects=$(sed -n "/^ *<postprocess>$/,/^ *<\/postprocess>$/ {/^ *<stream type=\"music\">$/,/^ *<\/stream>$/ {/<stream type=\"music\">/d; /<\/stream>/d; s/<apply effect=\"//g; s/\"\/>//g; s/ *//g; p}}" $1)
+            for effect in ${effects}; do
+              [ "$effect" != "atmos" -a "$effect" != "dtsaudio" ] && sed -i "/^\( *\)<apply effect=\"$effect\"\/>/d" $1
+            done
+            ;;
   esac
+  return 0
 }
 patch_cfgs() {
   local first=true file lib=false effect=false outsp=false proxy=false replace=false libname libpath effname uid libname_sw uid_sw libname_hw uid_hw libpathsw libpathhw conf xml
+  local files=$(find $MODPATH/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml")
   local opt=`getopt :leoqpr "$@"`
   eval set -- "$opt"
   while true; do
@@ -57,13 +58,6 @@ patch_cfgs() {
       *) return 1;;
     esac
   done
-  case $1 in
-    *.conf|*.xml) case $1 in
-                    *audio_effects*) file=$1; shift;;
-                    *) return;;
-                  esac;;
-    *) file=$MODPATH/$NAME;;
-  esac
   $first && { lib=true; effect=true; }
   if $proxy; then
     effname=$1; uid=${2:?}; shift 2
@@ -78,232 +72,201 @@ patch_cfgs() {
     { $lib || $effect; } && { libname=${1:?}; shift; }
     $lib && { libpath=${1:?}; shift; }
   fi
-  case "$file" in
-  *.conf)
-    if $proxy; then
-      if $replace && [ "$(sed -n "/^effects {/,/^}/ {/^  $effname {/,/^  }/p}" $file)" ]; then
-        SPACES=$(sed -n "/^effects {/,/^}/ {/^ *$effname {/p}" $file | sed -r "s/( *).*/\1/")
-        sed -i "/^effects {/,/^}/ {/^$SPACES$effname {/,/^$SPACES}/d}" $file
-      fi
-      [ ! "$(sed -n "/^effects {/,/^}/ {/^  $effname {/,/^  }/p}" $file)" ] && sed -i "s/^effects {/effects {\n  $effname {\n    library proxy\n    uuid $uid\n\n    libsw {\n      library $libname_sw\n      uuid $uid_sw\n    }\n\n    libhw {\n      library $libname_hw\n      uuid $uid_hw\n    }\n  }/g" $file
-      if $lib; then
-        patch_cfgs -l "$file" "proxy" "$LIBDIR/libeffectproxy.so"
-        if $replace; then
-          patch_cfgs -rl "$file" "$libname_sw" "$libpathsw"
-          patch_cfgs -rl "$file" "$libname_hw" "$libpathhw"
-        else
-          patch_cfgs -l "$file" "$libname_sw" "$libpathsw"
-          patch_cfgs -l "$file" "$libname_hw" "$libpathhw"
+  for file in $files; do
+    case "$file" in
+    *.conf)
+      if $proxy; then
+        if $replace && [ "$(sed -n "/^effects {/,/^}/ {/^  $effname {/,/^  }/p}" $file)" ]; then
+          spaces=$(sed -n "/^effects {/,/^}/ {/^ *$effname {/p}" $file | sed -r "s/( *).*/\1/")
+          sed -i "/^effects {/,/^}/ {/^$spaces$effname {/,/^$spaces}/d}" $file
         fi
-      fi
-      return
-    fi
-    if $lib; then
-      if $replace && [ "$(sed -n "/^libraries {/,/^}/ {/^ *$libname {/,/}/p}" $file)" ]; then
-        SPACES=$(sed -n "/^libraries {/,/^}/ {/^ *$libname {/p}" $file | sed -r "s/( *).*/\1/")
-        sed -i "/^libraries {/,/^}/ {/^$SPACES$libname {/,/^$SPACES}/d}" $file
-      fi
-      [ ! "$(sed -n "/^libraries {/,/^}/ {/^ *$libname {/,/}/p}" $file)" ] && sed -i "s|^libraries {|libraries {\n  $libname {\n    path $libpath\n  }|" $file
-    fi
-    if $effect; then
-      if $replace && [ "$(sed -n "/^effects {/,/^}/ {/^ *$effname {/,/}/p}" $file)" ]; then
-        SPACES=$(sed -n "/^effects {/,/^}/ {/^ *$effname {/p}" $file | sed -r "s/( *).*/\1/")
-        sed -i "/^effects {/,/^}/ {/^$SPACES$effname {/,/^$SPACES}/d}" $file
-      fi
-      [ ! "$(sed -n "/^effects {/,/^}/ {/^ *$effname {/,/}/p}" $file)" ] && sed -i "s|^effects {|effects {\n  $effname {\n    library $libname\n    uuid $uid\n  }|" $file
-    fi
-    if $outsp && [ "$API" -ge 26 ]; then
-      local OIFS=$IFS; local IFS=','
-      for i in $type; do
-        if [ ! "$(sed -n "/^$conf {/,/^}/p" $file)" ]; then
-          echo -e "\n$conf {\n    $i {\n        $effname {\n        }\n    }\n}" >> $file
-        elif [ ! "$(sed -n "/^$conf {/,/^}/ {/$i {/,/^    }/p}" $file)" ]; then
-          sed -i "/^$conf {/,/^}/ s/$conf {/$conf {\n    $i {\n        $effname {\n        }\n    }/" $file
-        elif [ ! "$(sed -n "/^$conf {/,/^}/ {/$i {/,/^    }/ {/$effname {/,/}/p}}" $file)" ]; then
-          sed -i "/^$conf {/,/^}/ {/$i {/,/^    }/ s/$i {/$i {\n        $effname {\n        }/}" $file
-        fi
-      done
-      local IFS=$OIFS
-    fi;;
-  *.xml)
-    if $proxy; then
-      if $replace && [ "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/p}" $file)" -o "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*\/>/p}" $file)" ]; then
-        sed -i "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/d}" $file
-        sed -i "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*\/>/d}" $file
-      fi
-      [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/p}" $file)" -a ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*>/,/^ *\/>/p}" $file)" ] && sed -i -e "/<effects>/ a\        <effectProxy name=\"$effname\" library=\"proxy\" uuid=\"$uid\">\n            <libsw library=\"$libname_sw\" uuid=\"$uid_sw\"\/>\n            <libhw library=\"$libname_hw\" uuid=\"$uid_hw\"\/>\n        <\/effectProxy>" $file
-      if $lib; then
-        patch_cfgs -l "$file" "proxy" "$LIBDIR/libeffectproxy.so"
-        if $replace; then
-          patch_cfgs -rl "$file" "$libname_sw" "$libpathsw"
-          patch_cfgs -rl "$file" "$libname_hw" "$libpathhw"
-        else
-          patch_cfgs -l "$file" "$libname_sw" "$libpathsw"
-          patch_cfgs -l "$file" "$libname_hw" "$libpathhw"
-        fi
-      fi
-      return
-    fi
-    if $lib; then
-      if $replace && [ "$(sed -n "/<libraries>/,/<\/libraries>/ {/^ *<library name=\"$libname\" path=\"$(basename $libpath)\"\/>/p}" $file)" ]; then
-        sed -i "/<libraries>/,/<\/libraries>/ {/^ *<library name=\"$libname\" path=\"$(basename $libpath)\"\/>/d}" $file
-      fi
-      [ ! "$(sed -n "/<libraries>/,/<\/libraries>/ {/^ *<library name=\"$libname\" path=\"$(basename $libpath)\"\/>/p}" $file)" ] && sed -i "/<libraries>/ a\        <library name=\"$libname\" path=\"$(basename $libpath)\"\/>" $file
-    fi
-    if $effect; then
-      if $replace && [ "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*\/>/p}" $file)" -o "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/p}" $file)" ]; then
-        sed -i "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*\/>/d}" $file
-        sed -i "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/d}" $file
-      fi
-      [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*\/>/p}" $file)" ] && sed -i "/<effects>/ a\        <effect name=\"$effname\" library=\"$(basename $libname)\" uuid=\"$uid\"\/>" $file
-    fi
-    if $outsp && [ "$API" -ge 26 ]; then
-      local OIFS=$IFS; local IFS=','
-      for i in $type; do
-        if [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/p" $file)" ]; then
-          sed -i "/<\/audio_effects_conf>/i\    <$xml>\n       <stream type=\"$type\">\n            <apply effect=\"$effname\"\/>\n        <\/stream>\n    <\/$xml>" $file
-        elif [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/p}" $file)" ]; then
-          sed -i "/^ *<$xml>/,/^ *<\/$xml>/ s/    <$xml>/    <$xml>\n        <stream type=\"$type\">\n            <apply effect=\"$effname\"\/>\n        <\/stream>/" $file
-        elif [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/ {/^ *<apply effect=\"$effname\"\/>/p}}" $file)" ]; then
-          sed -i "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/ s/<stream type=\"$type\">/<stream type=\"$type\">\n            <apply effect=\"$effname\"\/>/}" $file
-        fi
-      done
-      local IFS=$OIFS
-    fi;;
-  esac
-}
-grep_prop() {
-  REGEX="s/^$1=//p"
-  shift
-  FILES=$@
-  [ -z "$FILES" ] && FILES='/system/build.prop'
-  sed -n "$REGEX" $FILES 2>/dev/null | head -n 1
-}
-main() {
-  DIR=$1
-  LAST=false; NUM=1
-  #Some loop shenanigans so it'll run once or twice depending on supplied DIR
-  until $LAST; do
-    [ "$1" == "$MODDIR/*/system" -o $NUM -ne 1 ] && LAST=true
-    [ $NUM -ne 1 ] && DIR=$MODDIR/*/system
-    for MOD in $(find $DIR -maxdepth 0 -type d); do
-      RUNONCE=false
-      $LAST && [ "$MOD" == "$MODPATH/system" -o -f "$(dirname $MOD)/disable" ] && continue
-      FILES=$(find $MOD -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml")
-      [ -z "$FILES" ] && continue
-      MODNAME=$(basename $(dirname $MOD))
-      $LAST && [ ! "$(grep "$MODNAME" $NVBASE/aml/mods/modlist)" ] && echo "$MODNAME" >> $NVBASE/aml/mods/modlist
-      COUNT=1
-      [ "$MODNAME" == "ainur_sauron" ] && LIBDIR="$(dirname $(find $MOD -type f -name "libbundlewrapper.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
-      if [ -f "$(dirname $MOD)/.aml.sh" ]; then
-        case $(sed -n 1p $(dirname $MOD)/.aml.sh) in
-          \#*~*.sh) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|")
-                    [ "$(sed -n "/RUNONCE=true/p" $MODPATH/mods/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|"))" ] && . $MODPATH/.scripts/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|");;
-          *) cp_mv -c $(dirname $MOD)/.aml.sh $MODPATH/.scripts/$MODNAME.sh
-             [ "$(sed -n "/RUNONCE=true/p" $MODPATH/mods/$MODNAME.sh)" ] && . $MODPATH/.scripts/$(sed -n 1p $(dirname $MOD)/.aml.sh | sed -r "s|#(.*)|\1|");;
-        esac
-      fi
-      for FILE in ${FILES}; do
-        NAME=$(echo "$FILE" | sed "s|$MOD|system|")
-        $RUNONCE || case $FILE in
-          *audio_effects*.conf) for AUDMOD in $(ls $MODPATH/.scripts); do
-                                  if [ "$AUDMOD" == "$MODNAME.sh" ]; then
-                                    . $MODPATH/.scripts/$AUDMOD
-                                    COUNT=$(($COUNT + 1))
-                                    break
-                                  else
-                                    LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
-                                    UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
-                                    if [ "$(sed -n "/^libraries {/,/^}/ {/$LIB.so/p}" $FILE)" ] && [ "$(sed -n "/^effects {/,/^}/ {/uuid $UUID/p}" $FILE)" ] && [ "$(find $MODDIR/$MODNAME/system -type f -name "$LIB.so")" ]; then
-                                      LIBDIR="$(dirname $(find $MODDIR/$MODNAME/system -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MODDIR/$MODNAME||" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
-                                      . $MODPATH/.scripts/$AUDMOD
-                                      COUNT=$(($COUNT + 1))
-                                      break
-                                    fi
-                                  fi
-                                done;;
-          *audio_effects*.xml) for AUDMOD in $(ls $MODPATH/.scripts); do
-                                 if [ "$AUDMOD" == "$MODNAME.sh" ]; then
-                                   . $MODPATH/.scripts/$AUDMOD
-                                   COUNT=$(($COUNT + 1))
-                                   break
-                                 else
-                                   LIB=$(echo "$AUDMOD" | sed -r "s|(.*)~.*.sh|\1|")
-                                   UUID=$(echo "$AUDMOD" | sed -r "s|.*~(.*).sh|\1|")
-                                   if [ "$(sed -n "/<libraries>/,/<\/libraries>/ {/path=\"$LIB.so\"/p}" $FILE)" ] && [ "$(sed -n "/<effects>/,/<\/effects>/ {/uuid=\"$UUID\"/p}" $FILE)" ] && [ "$(find $MOD -type f -name "$LIB.so")" ]; then
-                                     LIBDIR="$(dirname $(find $MOD -type f -name "$LIB.so" | head -n 1) | sed -e "s|$MOD|/system|" -e "s|/system/vendor|/vendor|" -e "s|/lib64|/lib|")"
-                                     . $MODPATH/.scripts/$AUDMOD
-                                     COUNT=$(($COUNT + 1))
-                                     break
-                                   fi
-                                 fi
-                               done;;
-        esac
-        $LAST && cp_mv -m $FILE $NVBASE/aml/mods/$MODNAME/$NAME
-      done
-      if $LAST && [ -f $(dirname $MOD)/system.prop ]; then
-        sed -i "/^$/d" $(dirname $MOD)/system.prop
-        [ "$(tail -1 $(dirname $MOD)/system.prop)" ] && echo "" >> $(dirname $MOD)/system.prop
-        while read PROP; do
-          [ ! "$PROP" ] && break
-          TPROP=$(echo "$PROP" | sed -r "s/(.*)=.*/\1/")
-          if [ ! "$(grep "$TPROP" $MODPATH/system.prop)" ]; then
-            echo "$PROP" >> $MODPATH/system.prop
-          elif [ "$(grep "^$TPROP" $MODPATH/system.prop)" ] && [ ! "$(grep "^$PROP" $MODPATH/system.prop)" ]; then
-            sed -i "s|^$TPROP|^#$TPROP|" $MODPATH/system.prop
-            echo "#$PROP" >> $MODPATH/system.prop
+        [ ! "$(sed -n "/^effects {/,/^}/ {/^  $effname {/,/^  }/p}" $file)" ] && sed -i "s/^effects {/effects {\n  $effname {\n    library proxy\n    uuid $uid\n\n    libsw {\n      library $libname_sw\n      uuid $uid_sw\n    }\n\n    libhw {\n      library $libname_hw\n      uuid $uid_hw\n    }\n  }/g" $file
+        if $lib; then
+          patch_cfgs -l "$file" "proxy" "$LIBDIR/lib/soundfx/libeffectproxy.so"
+          if $replace; then
+            patch_cfgs -rl "$file" "$libname_sw" "$libpathsw"
+            patch_cfgs -rl "$file" "$libname_hw" "$libpathhw"
+          else
+            patch_cfgs -l "$file" "$libname_sw" "$libpathsw"
+            patch_cfgs -l "$file" "$libname_hw" "$libpathhw"
           fi
-        done < $(dirname $MOD)/system.prop
-        cp_mv -m $(dirname $MOD)/system.prop $NVBASE/aml/mods/$MODNAME/system.prop
+        fi
+        return
       fi
-    done
-    if $LAST; then
-      [ -s $MODPATH/system.prop ] || rm -f $MODPATH/system.prop
-      for FILE in $MODPATH/*.sh $MODPATH/*.prop; do
-        [ "$(tail -1 $FILE)" ] && echo "" >> $FILE
-      done
+      if $lib; then
+        if $replace && [ "$(sed -n "/^libraries {/,/^}/ {/^ *$libname {/,/}/p}" $file)" ]; then
+          spaces=$(sed -n "/^libraries {/,/^}/ {/^ *$libname {/p}" $file | sed -r "s/( *).*/\1/")
+          sed -i "/^libraries {/,/^}/ {/^$spaces$libname {/,/^$spaces}/d}" $file
+        fi
+        [ ! "$(sed -n "/^libraries {/,/^}/ {/^ *$libname {/,/}/p}" $file)" ] && sed -i "s|^libraries {|libraries {\n  $libname {\n    path $libpath\n  }|" $file
+      fi
+      if $effect; then
+        if $replace && [ "$(sed -n "/^effects {/,/^}/ {/^ *$effname {/,/}/p}" $file)" ]; then
+          spaces=$(sed -n "/^effects {/,/^}/ {/^ *$effname {/p}" $file | sed -r "s/( *).*/\1/")
+          sed -i "/^effects {/,/^}/ {/^$spaces$effname {/,/^$spaces}/d}" $file
+        fi
+        [ ! "$(sed -n "/^effects {/,/^}/ {/^ *$effname {/,/}/p}" $file)" ] && sed -i "s|^effects {|effects {\n  $effname {\n    library $libname\n    uuid $uid\n  }|" $file
+      fi
+      if $outsp && [ "$API" -ge 26 ]; then
+        local OIFS=$IFS; local IFS=','
+        for i in $type; do
+          if [ ! "$(sed -n "/^$conf {/,/^}/p" $file)" ]; then
+            echo -e "\n$conf {\n    $i {\n        $effname {\n        }\n    }\n}" >> $file
+          elif [ ! "$(sed -n "/^$conf {/,/^}/ {/$i {/,/^    }/p}" $file)" ]; then
+            sed -i "/^$conf {/,/^}/ s/$conf {/$conf {\n    $i {\n        $effname {\n        }\n    }/" $file
+          elif [ ! "$(sed -n "/^$conf {/,/^}/ {/$i {/,/^    }/ {/$effname {/,/}/p}}" $file)" ]; then
+            sed -i "/^$conf {/,/^}/ {/$i {/,/^    }/ s/$i {/$i {\n        $effname {\n        }/}" $file
+          fi
+        done
+        local IFS=$OIFS
+      fi
+      ;;
+    *.xml)
+      if $proxy; then
+        if $replace && [ "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/p}" $file)" -o "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*\/>/p}" $file)" ]; then
+          sed -i "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/d}" $file
+          sed -i "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*\/>/d}" $file
+        fi
+        [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/p}" $file)" -a ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*>/,/^ *\/>/p}" $file)" ] && sed -i -e "/<effects>/ a\        <effectProxy name=\"$effname\" library=\"proxy\" uuid=\"$uid\">\n            <libsw library=\"$libname_sw\" uuid=\"$uid_sw\"\/>\n            <libhw library=\"$libname_hw\" uuid=\"$uid_hw\"\/>\n        <\/effectProxy>" $file
+        if $lib; then
+          patch_cfgs -l "$file" "proxy" "$LIBDIR/lib/soundfx/libeffectproxy.so"
+          if $replace; then
+            patch_cfgs -rl "$file" "$libname_sw" "$libpathsw"
+            patch_cfgs -rl "$file" "$libname_hw" "$libpathhw"
+          else
+            patch_cfgs -l "$file" "$libname_sw" "$libpathsw"
+            patch_cfgs -l "$file" "$libname_hw" "$libpathhw"
+          fi
+        fi
+        return
+      fi
+      if $lib; then
+        if $replace && [ "$(sed -n "/<libraries>/,/<\/libraries>/ {/^ *<library name=\"$libname\" path=\"$(basename $libpath)\"\/>/p}" $file)" ]; then
+          sed -i "/<libraries>/,/<\/libraries>/ {/^ *<library name=\"$libname\" path=\"$(basename $libpath)\"\/>/d}" $file
+        fi
+        [ ! "$(sed -n "/<libraries>/,/<\/libraries>/ {/^ *<library name=\"$libname\" path=\"$(basename $libpath)\"\/>/p}" $file)" ] && sed -i "/<libraries>/ a\        <library name=\"$libname\" path=\"$(basename $libpath)\"\/>" $file
+      fi
+      if $effect; then
+        if $replace && [ "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*\/>/p}" $file)" -o "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/p}" $file)" ]; then
+          sed -i "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*\/>/d}" $file
+          sed -i "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/d}" $file
+        fi
+        [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*\/>/p}" $file)" ] && sed -i "/<effects>/ a\        <effect name=\"$effname\" library=\"$(basename $libname)\" uuid=\"$uid\"\/>" $file
+      fi
+      if $outsp && [ "$API" -ge 26 ]; then
+        local OIFS=$IFS; local IFS=','
+        for i in $type; do
+          if [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/p" $file)" ]; then
+            sed -i "/<\/audio_effects_conf>/i\    <$xml>\n       <stream type=\"$type\">\n            <apply effect=\"$effname\"\/>\n        <\/stream>\n    <\/$xml>" $file
+          elif [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/p}" $file)" ]; then
+            sed -i "/^ *<$xml>/,/^ *<\/$xml>/ s/    <$xml>/    <$xml>\n        <stream type=\"$type\">\n            <apply effect=\"$effname\"\/>\n        <\/stream>/" $file
+          elif [ ! "$(sed -n "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/ {/^ *<apply effect=\"$effname\"\/>/p}}" $file)" ]; then
+            sed -i "/^ *<$xml>/,/^ *<\/$xml>/ {/<stream type=\"$type\">/,/<\/stream>/ s/<stream type=\"$type\">/<stream type=\"$type\">\n            <apply effect=\"$effname\"\/>/}" $file
+          fi
+        done
+        local IFS=$OIFS
+      fi
+      ;;
+    esac
+  done
+  return 0
+}
+prop_process() {
+  local propfile=$1
+  sed -i "/^$/d" $propfile
+  [ "$(tail -1 $propfile)" ] && echo >> $propfile
+  while read prop; do
+    [ ! "$prop" ] && break
+    local tprop=$(echo "$prop" | sed -r "s/(.*)=.*/\1/")
+    if [ ! "$(grep "$tprop" $MODPATH/system.prop 2>/dev/null)" ]; then
+      echo "$prop" >> $MODPATH/system.prop
+    elif [ "$(grep "^$tprop" $MODPATH/system.prop 2>/dev/null)" ] && [ ! "$(grep "^$prop" $MODPATH/system.prop 2>/dev/null)" ]; then
+      sed -i "s|^$tprop|^#$tprop|" $MODPATH/system.prop
+      echo "#$prop" >> $MODPATH/system.prop
+      echo "Conflicting props: $tprop and $prop" >> $MODPATH/errors.txt
     fi
-    NUM=$((NUM+1))
+  done < $propfile
+  return 0
+}
+legacy_script() {
+  local RUNONCE=false COUNT=1 LIBDIR=$libdir/lib/soundfx MOD=$mod
+  . $mod/.aml.sh
+  for file in $files; do
+    local NAME=$(echo "$file" | sed "s|$mod|system|")
+    $RUNONCE || { case $file in
+                    *audio_effects*) . $mod/.aml.sh; COUNT=$(($COUNT + 1));;
+                  esac; }
   done
 }
 
-#Script logic
-#Determine if an audio mod was removed
-while read LINE; do
-  if [ ! -d $MODDIR/$LINE ]; then
-    export MODS="${MODS} $LINE"; REMPATCH=true
-  elif [ -f "$MODDIR/$LINE/disable" ]; then
-    for FILE in $(find $NVBASE/aml/mods/$LINE -type f); do
-      NAME=$(echo "$FILE" | sed "s|$NVBASE/aml/mods/||")
-      cp_mv -m $FILE $MODDIR/$NAME
+# Restore and reset
+. $MODPATH/uninstall.sh
+rm -rf $amldir $MODPATH/system $MODPATH/errors.txt $MODPATH/system.prop
+[ -f "$moddir/acdb/post-fs-data.sh" ] && mv -f $moddir/acdb/post-fs-data.sh $moddir/acdb/post-fs-data.sh.bak
+mkdir $amldir
+# Don't follow symlinks
+files="$(find $MAGISKTMP/mirror/system_root/system $MAGISKTMP/mirror/system $MAGISKTMP/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" -o -name "*audio_configs*.xml" -o -name "*audio_device*.xml")"
+for file in $files; do
+  name=$(echo "$file" | sed -e "s|$MAGISKTMP/mirror||" -e "s|/system_root/|/|" -e "s|/system/|/|")
+  cp_mv -c $file $MODPATH/system/$name
+  case $file in
+    *audio_effects*) osp_detect $MODPATH/system/$name;;
+  esac
+done
+
+# Detect/install audio mods
+for mod in $(find $moddir/* -maxdepth 0 -type d); do
+  modname="$(basename $mod)"
+  [ "$mod" == "$MODPATH" -o -f "$mod/disable" ] && continue
+  builtin=false
+  for audmod in $MODPATH/.scripts/*; do
+    lib=$(echo "$(basename $audmod)" | sed -r "s|(.*)~.*.sh|\1|")
+    unset libfile
+    # Favor vendor libs if oreo+
+    if [ $API -ge 26 ]; then
+      libfile=$(find $mod/system/vendor/lib/soundfx -type f -name $lib.so 2>/dev/null | head -n1)
+      [ -f "$libfile" ] || { $IS64BIT && libfile=$(find $mod/system/vendor/lib64/soundfx -type f -name $lib.so 2>/dev/null | head -n1); }
+    fi
+    [ -f "$libfile" ] || libfile=$(find $mod/**/lib/soundfx -type f -name $lib.so 2>/dev/null | head -n1)
+    [ -f "$libfile" ] || { $IS64BIT && libfile=$(find $mod/**/lib64/soundfx -type f -name $lib.so 2>/dev/null | head -n1); }
+    [ -f "$libfile" ] || continue
+    uuid=$(echo "$(basename $audmod)" | sed -r "s|.*~(.*).sh|\1|")
+    hexuuid="$(echo $uuid | sed -r -e "s/^(..)(..)(..)(..)-(..)(..)-(..)(..)-/\4\3\2\1\6\5\8\7-/" -e "s/-(..)(..)-(............)$/\2\1\3/")"
+    xxd -p $libfile | tr -d '\n' | grep -q "$hexuuid"
+    [ $? -eq 0 ] || continue
+    builtin=true
+    echo "$modname" >> $amldir/modlist
+    files=$(find $mod/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" -o -name "*audio_configs*.xml" -o -name "*audio_device*.xml")
+    for file in $files; do
+      cp_mv -m $file $amldir/$modname/$(echo "$file" | sed "s|$mod/||")
     done
-    export MODS="${MODS} $LINE"; REMPATCH=true
+    libfile="$(echo $libfile | sed -e "s|$mod||" -e "s|/system/vendor|/vendor|")"
+    . $audmod
+    [ -s "$mod/system.prop" ] && { prop_process $mod/system.prop; cp_mv -m $mod/system.prop $amldir/$modname/system.prop; }
+  done
+  if ! $builtin; then
+    files=$(find $mod/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" -o -name "*audio_configs*.xml" -o -name "*audio_device*.xml")
+    [ "$files" ] && echo "$modname" >> $amldir/modlist
+    for file in $files; do
+      cp_mv -m $file $amldir/$modname/$(echo "$file" | sed "s|$mod/||")
+    done
+    if [ -f "$mod/.aml.sh" ]; then
+      if grep -qE '\$MODPATH/\$NAME|RUNONCE=|COUNT=' $mod/.aml.sh; then
+        legacy_script
+      else
+        (. $mod/.aml.sh) || echo "Error in $modname aml.sh script" >> $MODPATH/errors.txt
+      fi
+      [ -s "$mod/system.prop" ] && { prop_process $mod/system.prop; cp_mv -m $mod/system.prop $amldir/$modname/system.prop; }
+    fi
   fi
-done < $NVBASE/aml/mods/modlist
-#Determine if an audio mod has been added/changed
-DIR=$(find $MODDIR/* -type d -maxdepth 0 | sed -e "s|$MODDIR/lost\+found ||g" -e "s|$MODDIR/aml ||g")
-[ "$(find $DIR -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml"  -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" | head -n 1)" ] && NEWPATCH=true
-#Main method
-if $REMPATCH; then
-  if [ -f $MODPATH/system.prop ]; then > $MODPATH/system.prop; else touch $MODPATH/system.prop; fi
-  for MODNAME in ${MODS}; do
-    rm -rf $NVBASE/aml/mods/$MODNAME
-    sed -i "/$MODNAME/d" $NVBASE/aml/mods/modlist
-  done
-  if [ -d $MAGISKTMP/mirror/system_root ]; then
-    FILES="$(find $MAGISKTMP/mirror/system_root/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml")"
-    [ -L /system/vendor ] && FILES="$FILES $(find $MAGISKTMP/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml")"
-  else
-    FILES="$(find $MAGISKTMP/mirror/system $MAGISKTMP/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml")"
-  fi
-  for FILE in ${FILES}; do
-    NAME=$(echo "$FILE" | sed -e "s|$MAGISKTMP/mirror||" -e "s|/system/||")
-    cp_mv -c $FILE $MODPATH/system/$NAME
-  done
-  for FILE in $(find $MODPATH/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml"); do
-    osp_detect $FILE
-  done
-  main "$NVBASE/aml/mods/*/system"
-elif $NEWPATCH; then
-  main "$MODDIR/*/system"
+done
+[ -s $MODPATH/system.prop ] && { [ "$(tail -1 $MODPATH/system.prop)" ] && echo >> $MODPATH/system.prop; } || rm -f $MODPATH/system.prop
+
+# Set perms and such
+set_perm_recursive $MODPATH/system 0 0 0755 0644
+if [ -d $MODPATH/system/vendor ]; then
+  set_perm_recursive $MODPATH/system/vendor 0 0 0755 0644 u:object_r:vendor_file:s0
+  [ -d $MODPATH/system/vendor/etc ] && set_perm_recursive $MODPATH/system/vendor/etc 0 0 0755 0644 u:object_r:vendor_configs_file:s0
 fi
+echo `date`
+exit 0
