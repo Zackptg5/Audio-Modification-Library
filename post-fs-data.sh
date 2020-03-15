@@ -13,32 +13,42 @@ amldir=/data/adb/aml
 # Functions
 cp_mv() {
   if [ -z $4 ]; then
-    mkdir -p "$(dirname $3)"
+    mkdir -p "$(dirname "$3")"
     cp -af "$2" "$3"
   else
-    mkdir -p "$(dirname $3)"
+    mkdir -p "$(dirname "$3")"
     cp -af "$2" "$3"
     chmod $4 "$3"
   fi
   [ "$1" == "-m" ] && rm -f $2
+  case "$3" in
+    *"/system/vendor/etc/"*) chcon u:object_r:vendor_configs_file:s0 "$3";;
+    *"/system/vendor/*") chcon u:object_r:vendor_file:s0 "$3";;
+    *) chcon u:object_r:system_file:s0 "$3";;
+  esac
   return 0
 }
 osp_detect() {
-  local spaces effects
-  case $1 in
-    *.conf) spaces=$(sed -n "/^output_session_processing {/,/^}/ {/^ *music {/p}" $1 | sed -r "s/( *).*/\1/")
-            effects=$(sed -n "/^output_session_processing {/,/^}/ {/^$spaces\music {/,/^$spaces}/p}" $1 | grep -E "^$spaces +[A-Za-z]+" | sed -r "s/( *.*) .*/\1/g")
-            for effect in ${effects}; do
-              spaces=$(sed -n "/^effects {/,/^}/ {/^ *$effect {/p}" $1 | sed -r "s/( *).*/\1/")
-              [ "$effect" != "atmos" -a "$effect" != "dtsaudio" ] && sed -i "/^effects {/,/^}/ {/^$spaces$effect {/,/^$spaces}/d}" $1
-            done
-            ;;
-    *.xml) effects=$(sed -n "/^ *<postprocess>$/,/^ *<\/postprocess>$/ {/^ *<stream type=\"music\">$/,/^ *<\/stream>$/ {/<stream type=\"music\">/d; /<\/stream>/d; s/<apply effect=\"//g; s/\"\/>//g; s/ *//g; p}}" $1)
-            for effect in ${effects}; do
-              [ "$effect" != "atmos" -a "$effect" != "dtsaudio" ] && sed -i "/^\( *\)<apply effect=\"$effect\"\/>/d" $1
-            done
-            ;;
-  esac
+  local spaces effects type="$1"
+  local files=$(find $MODPATH/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml")
+  for file in $files; do
+    for osp in $type; do
+      case $file in
+        *.conf) spaces=$(sed -n "/^output_session_processing {/,/^}/ {/^ *$osp {/p}" $file | sed -r "s/( *).*/\1/")
+                effects=$(sed -n "/^output_session_processing {/,/^}/ {/^$spaces\$osp {/,/^$spaces}/p}" $file | grep -E "^$spaces +[A-Za-z]+" | sed -r "s/( *.*) .*/\1/g")
+                for effect in ${effects}; do
+                  spaces=$(sed -n "/^effects {/,/^}/ {/^ *$effect {/p}" $file | sed -r "s/( *).*/\1/")
+                  [ "$effect" != "atmos" -a "$effect" != "dtsaudio" ] && sed -i "/^effects {/,/^}/ {/^$spaces$effect {/,/^$spaces}/d}" $file
+                done
+                ;;
+        *.xml) effects=$(sed -n "/^ *<postprocess>$/,/^ *<\/postprocess>$/ {/^ *<stream type=\"$osp\">$/,/^ *<\/stream>$/ {/<stream type=\"$osp\">/d; /<\/stream>/d; s/<apply effect=\"//g; s/\"\/>//g; s/ *//g; p}}" $file)
+                for effect in ${effects}; do
+                  [ "$effect" != "atmos" -a "$effect" != "dtsaudio" ] && sed -i "/^\( *\)<apply effect=\"$effect\"\/>/d" $file
+                done
+                ;;
+      esac
+    done
+  done
   return 0
 }
 patch_cfgs() {
@@ -208,11 +218,9 @@ mkdir $amldir
 files="$(find $MAGISKTMP/mirror/system_root/system $MAGISKTMP/mirror/system $MAGISKTMP/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" -o -name "*audio_configs*.xml" -o -name "*audio_device*.xml")"
 for file in $files; do
   name=$(echo "$file" | sed -e "s|$MAGISKTMP/mirror||" -e "s|/system_root/|/|" -e "s|/system/|/|")
-  cp_mv -c $file $MODPATH/system/$name
-  case $file in
-    *audio_effects*) osp_detect $MODPATH/system/$name;;
-  esac
+  cp_mv -c $file $MODPATH/system$name
 done
+osp_detect "music"
 
 # Detect/install audio mods
 for mod in $(find $moddir/* -maxdepth 0 -type d); do
@@ -240,6 +248,8 @@ for mod in $(find $moddir/* -maxdepth 0 -type d); do
     for file in $files; do
       cp_mv -m $file $amldir/$modname/$(echo "$file" | sed "s|$mod/||")
     done
+    # Chcon fix for Android Q+
+    [ $API -ge 29 ] && chcon -R u:object_r:vendor_file:s0 $mod/system/vendor/lib*/soundfx 2>/dev/null
     libfile="$(echo $libfile | sed -e "s|$mod||" -e "s|/system/vendor|/vendor|")"
     . $audmod
     [ -s "$mod/system.prop" ] && { prop_process $mod/system.prop; cp_mv -m $mod/system.prop $amldir/$modname/system.prop; }

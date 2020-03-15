@@ -48,6 +48,7 @@ patch_cfgs -qle mic,camcorder ZNR b8a031e0-6bbf-11e5-b9ef-0002a5d5c51b znrwrappe
 patch_cfgs -pl sonyeffect af8da7e0-2ca1-11e3-b71d-0002a5d5c51b sonyeffect_sw 50786e95-da76-4557-976b-7981bdf6feb9 $libfile sonyeffect_hw f9ed8ae0-1b9c-11e4-8900-0002a5d5c51b $(dirname $libfile)/libsonypostprocbundle.so
 #libatmos~74697567-7261-6564-6864-65726f206678
 patch_cfgs dolbyatmos 74697567-7261-6564-6864-65726f206678 dolbyatmos $libfile
+osp_detect "alarm notification ring"
 #libdtsaudio~146edfc0-7ed2-11e4-80eb-0002a5d5c51b
 patch_cfgs -ole music dtsaudio 146edfc0-7ed2-11e4-80eb-0002a5d5c51b dtsaudio $libfile
 #end

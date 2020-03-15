@@ -3,6 +3,12 @@ AudModLib is a compatibility framework that allows the seamless integration of m
 To uninstall, REMOVE WITH MAGISK MANAGER
 
 ## Change Log
+### v3.1 - 03.14.2020
+* Enhanced osp_detect - needed for some mods
+* Added chcon fix for Q - may fix issues some users have with v4a/jdsp
+* Use proper contexts for aml files
+* Clean up script a little bit
+
 ### v3.0 - 03.13.2020
 * Complete overhaul - most everything happens in the boot script now, no need for redunduncies
 * Added Guitardedhero's Dolby Atmos Pie/Q
