@@ -6,7 +6,7 @@ API=
 IS64BIT=
 libdir=
 set -x 2>$MODPATH/debug.log
-echo `date`
+echo `date +%S`
 moddir=$(dirname $MODPATH)
 amldir=/data/adb/aml
 
@@ -200,11 +200,11 @@ prop_process() {
 }
 legacy_script() {
   local RUNONCE=false COUNT=1 LIBDIR=$libdir/lib/soundfx MOD=$mod
-  . $mod/.aml.sh
+  (. $mod/.aml.sh) || echo "Error in $modname aml.sh script" >> $MODPATH/errors.txt
   for file in $files; do
     local NAME=$(echo "$file" | sed "s|$mod|system|")
     $RUNONCE || { case $file in
-                    *audio_effects*) . $mod/.aml.sh; COUNT=$(($COUNT + 1));;
+                    *audio_effects*) (. $mod/.aml.sh) || [ "$(grep -x "$modname" $MODPATH/errors.txt)" ] || echo "Error in $modname aml.sh script" >> $MODPATH/errors.txt; COUNT=$(($COUNT + 1));;
                   esac; }
   done
 }
@@ -237,7 +237,7 @@ for mod in $(find $moddir/* -maxdepth 0 -type d); do
     xxd -p $libfile | tr -d '\n' | grep -q "$hexuuid"
     [ $? -eq 0 ] || continue
     builtin=true
-    echo "$modname" >> $amldir/modlist
+    [ "$(grep -x "$modname" $amldir/modlist)" ] || echo "$modname" >> $amldir/modlist
     files=$(find $mod/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" -o -name "*audio_configs*.xml" -o -name "*audio_device*.xml")
     for file in $files; do
       cp_mv -m $file $amldir/$modname/$(echo "$file" | sed "s|$mod/||")
@@ -250,7 +250,7 @@ for mod in $(find $moddir/* -maxdepth 0 -type d); do
   done
   if ! $builtin; then
     files=$(find $mod/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" -o -name "*audio_configs*.xml" -o -name "*audio_device*.xml")
-    [ "$files" ] && echo "$modname" >> $amldir/modlist
+    [ "$files" ] && [ ! "$(grep -x "$modname" $amldir/modlist)" ] && echo "$modname" >> $amldir/modlist
     for file in $files; do
       cp_mv -m $file $amldir/$modname/$(echo "$file" | sed "s|$mod/||")
     done
@@ -272,5 +272,5 @@ if [ -d $MODPATH/system/vendor ]; then
   set_perm_recursive $MODPATH/system/vendor 0 0 0755 0644 u:object_r:vendor_file:s0
   [ -d $MODPATH/system/vendor/etc ] && set_perm_recursive $MODPATH/system/vendor/etc 0 0 0755 0644 u:object_r:vendor_configs_file:s0
 fi
-echo `date`
+echo `date +%S`
 exit 0
