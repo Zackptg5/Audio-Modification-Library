@@ -229,14 +229,8 @@ for mod in $(find $moddir/* -maxdepth 0 -type d); do
   builtin=false
   for audmod in $MODPATH/.scripts/*; do
     lib=$(echo "$(basename $audmod)" | sed -r "s|(.*)~.*.sh|\1|")
-    unset libfile
     # Favor vendor libs if oreo+
-    if [ $API -ge 26 ]; then
-      libfile=$(find $mod/system/vendor/lib/soundfx -type f -name $lib.so 2>/dev/null | head -n1)
-      [ -f "$libfile" ] || { $IS64BIT && libfile=$(find $mod/system/vendor/lib64/soundfx -type f -name $lib.so 2>/dev/null | head -n1); }
-    fi
-    [ -f "$libfile" ] || libfile=$(find $mod/**/lib/soundfx -type f -name $lib.so 2>/dev/null | head -n1)
-    [ -f "$libfile" ] || { $IS64BIT && libfile=$(find $mod/**/lib64/soundfx -type f -name $lib.so 2>/dev/null | head -n1); }
+    libfile="$(find $mod/system/vendor/lib/soundfx $mod/**/lib/soundfx -type f -name $lib.so 2>/dev/null | head -n1)"
     [ -f "$libfile" ] || continue
     uuid=$(echo "$(basename $audmod)" | sed -r "s|.*~(.*).sh|\1|")
     hexuuid="$(echo $uuid | sed -r -e "s/^(..)(..)(..)(..)-(..)(..)-(..)(..)-/\4\3\2\1\6\5\8\7-/" -e "s/-(..)(..)-(............)$/\2\1\3/")"
