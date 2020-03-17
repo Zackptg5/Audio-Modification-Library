@@ -223,48 +223,44 @@ done
 osp_detect "music"
 
 # Detect/install audio mods
-for mod in $(find $moddir/* -maxdepth 0 -type d); do
+for mod in $(find $moddir/* -maxdepth 0 -type d ! -name "aml"); do
   modname="$(basename $mod)"
-  [ "$mod" == "$MODPATH" -o -f "$mod/disable" ] && continue
-  builtin=false
-  for audmod in $MODPATH/.scripts/*; do
-    lib=$(echo "$(basename $audmod)" | sed -r "s|(.*)~.*.sh|\1|")
-    # Favor vendor libs if oreo+
-    libfile="$(find $mod/system/vendor/lib/soundfx $mod/**/lib/soundfx -type f -name $lib.so 2>/dev/null | head -n1)"
-    [ -f "$libfile" ] || continue
-    uuid=$(echo "$(basename $audmod)" | sed -r "s|.*~(.*).sh|\1|")
-    hexuuid="$(echo $uuid | sed -r -e "s/^(..)(..)(..)(..)-(..)(..)-(..)(..)-/\4\3\2\1\6\5\8\7-/" -e "s/-(..)(..)-(............)$/\2\1\3/")"
-    xxd -p $libfile | tr -d '\n' | grep -q "$hexuuid"
-    [ $? -eq 0 ] || continue
-    builtin=true
-    [ "$(grep -x "$modname" $amldir/modlist)" ] || echo "$modname" >> $amldir/modlist
-    files=$(find $mod/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" -o -name "*audio_configs*.xml" -o -name "*audio_device*.xml")
-    for file in $files; do
-      cp_mv -m $file $amldir/$modname/$(echo "$file" | sed "s|$mod/||")
+  [ -f "$mod/disable" ] && continue
+  # Move files
+  files="$(find $mod/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" -o -name "*audio_configs*.xml" -o -name "*audio_device*.xml")"
+  [ "$files" ] && echo "$modname" >> $amldir/modlist
+  for file in $files; do
+    cp_mv -m $file $amldir/$modname/$(echo "$file" | sed "s|$mod/||")
+  done
+  # .aml.sh file should take precedence
+  if [ -f "$mod/.aml.sh" ]; then
+    $(grep -x "$modname" $amldir/modlist) || echo "$modname" >> $amldir/modlist
+    if grep -qE '\$MODPATH/\$NAME|RUNONCE=|COUNT=' $mod/.aml.sh; then
+      legacy_script
+    else
+      (. $mod/.aml.sh) || echo "Error in $modname aml.sh script" >> $MODPATH/errors.txt
+    fi
+  else
+    # Favor vendor libs over system ones, no aml builtins are 64bit only - use 32bit lib dir
+    libs="$(find $mod/system/vendor/lib/soundfx $mod/system/lib/soundfx -type f <libs>)"
+    for lib in $libs; do
+      for audmod in $MODPATH/.scripts/$(basename $lib)~*; do
+        uuid=$(basename $audmod | sed -r "s/.*~(.*).sh/\1/")
+        hexuuid="$(echo $uuid | sed -r -e "s/^(..)(..)(..)(..)-(..)(..)-(..)(..)-/\4\3\2\1\6\5\8\7-/" -e "s/-(..)(..)-(............)$/\2\1\3/")"
+        xxd -p $lib | tr -d '\n' | grep -q "$hexuuid"
+        [ $? -eq 0 ] || continue
+        $(grep -xq "$modname" $amldir/modlist) || echo "$modname" >> $amldir/modlist
+        libfile="$(echo $lib | sed -e "s|$mod||" -e "s|/system/vendor|/vendor|")"
+        . $audmod
+      done
     done
+  fi
+  if $(grep -x "$modname" $amldir/modlist); then
+    [ -s "$mod/system.prop" ] && { prop_process $mod/system.prop; cp_mv -m $mod/system.prop $amldir/$modname/system.prop; }
     # Chcon fix for Android Q+
     [ $API -ge 29 ] && chcon -R u:object_r:vendor_file:s0 $mod/system/vendor/lib*/soundfx 2>/dev/null
-    libfile="$(echo $libfile | sed -e "s|$mod||" -e "s|/system/vendor|/vendor|")"
-    . $audmod
-    [ -s "$mod/system.prop" ] && { prop_process $mod/system.prop; cp_mv -m $mod/system.prop $amldir/$modname/system.prop; }
-  done
-  if ! $builtin; then
-    files=$(find $mod/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" -o -name "*audio_configs*.xml" -o -name "*audio_device*.xml")
-    [ "$files" ] && [ ! "$(grep -x "$modname" $amldir/modlist)" ] && echo "$modname" >> $amldir/modlist
-    for file in $files; do
-      cp_mv -m $file $amldir/$modname/$(echo "$file" | sed "s|$mod/||")
-    done
-    if [ -f "$mod/.aml.sh" ]; then
-      if grep -qE '\$MODPATH/\$NAME|RUNONCE=|COUNT=' $mod/.aml.sh; then
-        legacy_script
-      else
-        (. $mod/.aml.sh) || echo "Error in $modname aml.sh script" >> $MODPATH/errors.txt
-      fi
-      [ -s "$mod/system.prop" ] && { prop_process $mod/system.prop; cp_mv -m $mod/system.prop $amldir/$modname/system.prop; }
-    fi
   fi
 done
-[ -s $MODPATH/system.prop ] && { [ "$(tail -1 $MODPATH/system.prop)" ] && echo >> $MODPATH/system.prop; } || rm -f $MODPATH/system.prop
 
 # Set perms and such
 set_perm_recursive $MODPATH/system 0 0 0755 0644
