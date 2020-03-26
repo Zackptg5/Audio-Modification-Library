@@ -5,7 +5,8 @@ MAGISKTMP=
 API=
 IS64BIT=
 libdir=
-set -x 2>$MODPATH/debug.log
+exec 2>$MODPATH/debug.log
+set -x
 echo `date +%S`
 moddir=$(dirname $MODPATH)
 amldir=/data/adb/aml
@@ -227,7 +228,7 @@ for mod in $(find $moddir/* -maxdepth 0 -type d ! -name "aml"); do
   modname="$(basename $mod)"
   [ -f "$mod/disable" ] && continue
   # Move files
-  files="$(find $mod/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" -o -name "*audio_configs*.xml" -o -name "*audio_device*.xml")"
+  files="$(find $mod/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" -o -name "*audio_configs*.xml" -o -name "*audio_device*.xml" 2>/dev/null)"
   [ "$files" ] && echo "$modname" >> $amldir/modlist
   for file in $files; do
     cp_mv -m $file $amldir/$modname/$(echo "$file" | sed "s|$mod/||")
@@ -242,7 +243,7 @@ for mod in $(find $moddir/* -maxdepth 0 -type d ! -name "aml"); do
     fi
   else
     # Favor vendor libs over system ones, no aml builtins are 64bit only - use 32bit lib dir
-    libs="$(find $mod/system/vendor/lib/soundfx $mod/system/lib/soundfx -type f <libs>)"
+    libs="$(find $mod/system/vendor/lib/soundfx $mod/system/lib/soundfx -type f <libs> 2>/dev/null)"
     for lib in $libs; do
       for audmod in $MODPATH/.scripts/$(basename $lib)~*; do
         uuid=$(basename $audmod | sed -r "s/.*~(.*).sh/\1/")
