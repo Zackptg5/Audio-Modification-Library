@@ -12,22 +12,25 @@ moddir=$(dirname $MODPATH)
 amldir=/data/adb/aml
 
 # Functions
+set_perm() {
+  chown $2:$3 $1 || return 1
+  chmod $4 $1 || return 1
+  CON=$5
+  [ -z $CON ] && CON=u:object_r:system_file:s0
+  chcon $CON $1 || return 1
+}
+set_perm_recursive() {
+  find $1 -type d 2>/dev/null | while read dir; do
+    set_perm $dir $2 $3 $4 $6
+  done
+  find $1 -type f -o -type l 2>/dev/null | while read file; do
+    set_perm $file $2 $3 $5 $6
+  done
+}
 cp_mv() {
-  if [ -z $4 ]; then
-    mkdir -p "$(dirname "$3")"
-    cp -af "$2" "$3"
-  else
-    mkdir -p "$(dirname "$3")"
-    cp -af "$2" "$3"
-    chmod $4 "$3"
-  fi
-  [ "$1" == "-m" ] && rm -f $2
-  case "$3" in
-    *"/system/vendor/etc/"*) chcon u:object_r:vendor_configs_file:s0 "$3";;
-    *"/system/vendor/*") chcon u:object_r:vendor_file:s0 "$3";;
-    *) chcon u:object_r:system_file:s0 "$3";;
-  esac
-  return 0
+  mkdir -p "$(dirname "$3")"
+  cp -af "$2" "$3"
+  [ "$1" == "-m" ] && rm -f $2 || true
 }
 osp_detect() {
   local spaces effects type="$1"
@@ -93,7 +96,7 @@ patch_cfgs() {
         fi
         [ ! "$(sed -n "/^effects {/,/^}/ {/^  $effname {/,/^  }/p}" $file)" ] && sed -i "s/^effects {/effects {\n  $effname {\n    library proxy\n    uuid $uid\n\n    libsw {\n      library $libname_sw\n      uuid $uid_sw\n    }\n\n    libhw {\n      library $libname_hw\n      uuid $uid_hw\n    }\n  }/g" $file
         if $lib; then
-          patch_cfgs -l "$file" "proxy" "$LIBDIR/lib/soundfx/libeffectproxy.so"
+          patch_cfgs -l "$file" "proxy" "$libdir/lib/soundfx/libeffectproxy.so"
           if $replace; then
             patch_cfgs -rl "$file" "$libname_sw" "$libpathsw"
             patch_cfgs -rl "$file" "$libname_hw" "$libpathhw"
@@ -140,7 +143,7 @@ patch_cfgs() {
         fi
         [ ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effectProxy name=\"$effname\".*>/,/^ *<\/effectProxy>/p}" $file)" -a ! "$(sed -n "/<effects>/,/<\/effects>/ {/^ *<effect name=\"$effname\".*>/,/^ *\/>/p}" $file)" ] && sed -i -e "/<effects>/ a\        <effectProxy name=\"$effname\" library=\"proxy\" uuid=\"$uid\">\n            <libsw library=\"$libname_sw\" uuid=\"$uid_sw\"\/>\n            <libhw library=\"$libname_hw\" uuid=\"$uid_hw\"\/>\n        <\/effectProxy>" $file
         if $lib; then
-          patch_cfgs -l "$file" "proxy" "$LIBDIR/lib/soundfx/libeffectproxy.so"
+          patch_cfgs -l "$file" "proxy" "$libdir/lib/soundfx/libeffectproxy.so"
           if $replace; then
             patch_cfgs -rl "$file" "$libname_sw" "$libpathsw"
             patch_cfgs -rl "$file" "$libname_hw" "$libpathhw"
@@ -235,7 +238,7 @@ for mod in $(find $moddir/* -maxdepth 0 -type d ! -name "aml"); do
   done
   # .aml.sh file should take precedence
   if [ -f "$mod/.aml.sh" ]; then
-    $(grep -x "$modname" $amldir/modlist) || echo "$modname" >> $amldir/modlist
+    grep -qx "$modname" $amldir/modlist || echo "$modname" >> $amldir/modlist
     if grep -qE '\$MODPATH/\$NAME|RUNONCE=|COUNT=' $mod/.aml.sh; then
       legacy_script
     else
