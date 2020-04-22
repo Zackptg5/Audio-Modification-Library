@@ -3,6 +3,9 @@ AudModLib is a compatibility framework that allows the seamless integration of m
 To uninstall, REMOVE WITH MAGISK MANAGER
 
 ## Change Log
+### v3.5 - 4.22.2020
+* Fixed bug with proxy effect patching
+
 ### v3.4 - 4.9.2020
 * Fix perms
 * Bug fixes
