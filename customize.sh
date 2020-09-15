@@ -24,17 +24,18 @@ for i in $MODPATH/.scripts/*; do
   libs="$libs-name \"$(basename $i | sed "s/~.*//")\" "
 done
 libs="$(echo $libs | sed "s/\" /\" -o /g")"
+sed -i -e "s|<libs>|$libs|" $MODPATH/service.sh
 
 # Set vars in script
 amldir=$NVBASE/aml
-[ $API -ge 26 ] && libdir="/vendor" || libdir="/system"
-sed -i -e "s|moddir=|moddir=$NVBASE/modules|" -e "s|amldir=|amldir=$amldir|" $MODPATH/uninstall.sh
-sed -i -e "s|<libs>|$libs|" -e "s|MODPATH=|MODPATH=$(echo $MODPATH | sed 's/modules_update/modules/')|" $MODPATH/post-fs-data.sh
-for i in MAGISKTMP API IS64BIT libdir amldir; do
-  sed -i "s|$i=|$i=$(eval echo \$$i)|" $MODPATH/post-fs-data.sh
+moddir=$NVBASE/modules
+for i in API amldir moddir; do
+  for j in post-fs-data service uninstall; do
+    sed -i "s|$i=|$i=$(eval echo \$$i)|" $MODPATH/$j.sh
+  done
 done
 
 # Place fallback script in the event idiot user deletes aml module in file explorer
 cp -f $MODPATH/uninstall.sh $SERVICED/aml.sh && chmod 0755 $SERVICED/aml.sh
-sed -i "1a[ -d \"$(echo $MODPATH | sed 's/modules_update/modules/')\" ] && exit 0" $SERVICED/aml.sh
+sed -i "3a[ -d \"\$moddir/$MODID\" ] && exit 0" $SERVICED/aml.sh
 echo 'rm -f $0' >> $SERVICED/aml.sh

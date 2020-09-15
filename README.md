@@ -1,8 +1,17 @@
 # Audio Modification Library
-AudModLib is a compatibility framework that allows the seamless integration of multiple audio mods for Magisk installs. [More details in support thread](https://forum.xda-developers.com/apps/magisk/mod-audio-modification-library-t3745466).<br/>
+AudModLib is a compatibility framework that allows the seamless integration of multiple audio mods for Magisk installs. Enables supported audio mods to share the same needed files sudo as audio_effects. [More details in support thread](https://forum.xda-developers.com/apps/magisk/mod-audio-modification-library-t3745466).<br/>
 To uninstall, REMOVE WITH MAGISK MANAGER
 
 ## Change Log
+### v4.0 - x.xx.2020
+* Reworked boot scripts - no more time limitation
+* Misc bug fixes
+* Removed prop processing
+* Allow use of "aml.sh" in addition to ".aml.sh" scripts
+* Added support for another dolby mod
+* Updated for Android 11
+* Only copy files to aml if needed by other mods
+
 ### v3.5 - 4.22.2020
 * Fixed bug with proxy effect patching
 

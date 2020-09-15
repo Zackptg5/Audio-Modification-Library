@@ -1,6 +1,6 @@
 #!/system/bin/sh
-amldir=
 moddir=
+amldir=
 if [ -s $amldir/modlist ]; then
   while read mod; do
     [ -d "$moddir/$mod" ] || continue

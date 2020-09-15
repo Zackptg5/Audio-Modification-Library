@@ -49,6 +49,9 @@ patch_cfgs -pl sonyeffect af8da7e0-2ca1-11e3-b71d-0002a5d5c51b sonyeffect_sw 507
 #libatmos.so~74697567-7261-6564-6864-65726f206678
 patch_cfgs dolbyatmos 74697567-7261-6564-6864-65726f206678 dolbyatmos $libfile
 osp_detect "alarm notification ring"
+#libswdap_ds1se.so~74697567-7261-6564-6864-65726f206678
+patch_cfgs dolbyatmos 74697567-7261-6564-6864-65726f206678 dolbyatmos $libfile
+osp_detect "alarm notification ring"
 #libdtsaudio.so~146edfc0-7ed2-11e4-80eb-0002a5d5c51b
 patch_cfgs -ole music dtsaudio 146edfc0-7ed2-11e4-80eb-0002a5d5c51b dtsaudio $libfile
 #end
