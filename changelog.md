@@ -1,4 +1,4 @@
-### v4.1 - 1.31.2020
+### v4.1 - 1.31.2022
 * Add support for magisk 24 module update method
 
 ### v4.0 - 9.15.2020
