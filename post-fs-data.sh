@@ -102,7 +102,7 @@ done
 
 # Set perms and such
 set_perm_recursive $MODPATH/system 0 0 0755 0644
-if [ -d $MODPATH/system/vendor ]; then
+if [ $API -ge 26 ] && [ -d $MODPATH/system/vendor ]; then
   set_perm_recursive $MODPATH/system/vendor 0 2000 0755 0644 u:object_r:vendor_file:s0
   [ -d $MODPATH/system/vendor/etc ] && set_perm_recursive $MODPATH/system/vendor/etc 0 2000 0755 0644 u:object_r:vendor_configs_file:s0
   [ -d $MODPATH/system/vendor/odm/etc ] && set_perm_recursive $MODPATH/system/vendor/odm/etc 0 2000 0755 0644 u:object_r:vendor_configs_file:s0
