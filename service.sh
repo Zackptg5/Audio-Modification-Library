@@ -211,7 +211,12 @@ for mod in $(find $moddir/* -maxdepth 0 -type d ! -name aml); do
   fi
 done
 
-# Mount
+# Reload patched files - original mounted files are seemingly deleted and replaced by sed
+for i in $(find $MODPATH/system -type f); do
+  j="$(echo $i | sed "s|$MODPATH||")"
+  umount $j
+  mount -o bind $i $j
+done
 lists="*audio*effects*.conf -o -name *audio*effects*.xml\
        -o -name *policy*.conf -o -name *policy*.xml\
        -o -name *mixer*paths*.xml -o -name *mixer*gains*.xml\
@@ -237,13 +242,6 @@ if [ -d /my_product/etc ] && [ "$files" ]; then
     fi
   done
 fi
-
-# Reload patched files - original mounted files are seemingly deleted and replaced by sed
-for i in $(find $MODPATH/system -type f); do
-  j="$(echo $i | sed "s|$MODPATH||")"
-  umount $j
-  mount -o bind $i $j
-done
 [ $API -ge 24 ] && killall audioserver 2>/dev/null || killall mediaserver 2>/dev/null
 exit 0
 )&
