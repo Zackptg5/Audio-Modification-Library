@@ -55,6 +55,13 @@ osp_detect() {
 exec 2>$MODPATH/debug-pfsd.log
 set -x
 
+# Paths
+MIRROR=$MAGISKTMP/mirror
+SYSTEM=`realpath $MIRROR/system`
+VENDOR=`realpath $MIRROR/vendor`
+ODM=`realpath $MIRROR/odm`
+MY_PRODUCT=`realpath $MIRROR/my_product`
+
 # Restore and reset
 . $MODPATH/uninstall.sh
 rm -rf $amldir $MODPATH/system $MODPATH/errors.txt $MODPATH/system.prop
@@ -66,18 +73,11 @@ lists="*audio*effects*.conf -o -name *audio*effects*.xml\
        -o -name *mixer*paths*.xml -o -name *mixer*gains*.xml\
        -o -name *audio*device*.xml -o -name *sapa*feature*.xml\
        -o -name *audio*platform*info*.xml -o -name *audio*configs*.xml"
-files="$(find $MAGISKTMP/mirror/system_root/system\
-       $MAGISKTMP/mirror/system $MAGISKTMP/mirror/vendor\
-       -type f -name $lists)"
+files="$(find $SYSTEM $VENDOR $ODM $MY_PRODUCT -type f -name $lists)"
 for file in $files; do
   name=$(echo "$file" | sed -e "s|$MAGISKTMP/mirror||" -e "s|/system_root/|/|" -e "s|/system/|/|")
   cp_mv -c $file $MODPATH/system$name
   modfiles="/system$name $modfiles"
-done
-files="$(find /odm /my_product -type f -name $lists)"
-for file in $files; do
-  name=$(echo "$file" | sed -e "s|/odm||" -e "s|/my_product/||")
-  cp_mv -c $file $MODPATH/system/vendor$name
 done
 osp_detect "music"
 
@@ -102,9 +102,10 @@ done
 
 # Set perms and such
 set_perm_recursive $MODPATH/system 0 0 0755 0644
-if [ $API -ge 26 ] && [ -d $MODPATH/system/vendor ]; then
+if [ $API -ge 26 ]; then
   set_perm_recursive $MODPATH/system/vendor 0 2000 0755 0644 u:object_r:vendor_file:s0
-  [ -d $MODPATH/system/vendor/etc ] && set_perm_recursive $MODPATH/system/vendor/etc 0 2000 0755 0644 u:object_r:vendor_configs_file:s0
-  [ -d $MODPATH/system/vendor/odm/etc ] && set_perm_recursive $MODPATH/system/vendor/odm/etc 0 2000 0755 0644 u:object_r:vendor_configs_file:s0
+  set_perm_recursive $MODPATH/system/vendor/etc 0 2000 0755 0644 u:object_r:vendor_configs_file:s0
+  set_perm_recursive $MODPATH/system/vendor/odm/etc 0 2000 0755 0644 u:object_r:vendor_configs_file:s0
+  set_perm_recursive $MODPATH/system/odm/etc 0 0 0755 0644 u:object_r:vendor_configs_file:s0
 fi
 exit 0
