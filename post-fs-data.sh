@@ -55,13 +55,25 @@ osp_detect() {
 exec 2>$MODPATH/debug-pfsd.log
 set -x
 
+# Paths
+MIRROR=$MAGISKTMP/mirror
+SYSTEM=`realpath $MIRROR/system`
+VENDOR=`realpath $MIRROR/vendor`
+ODM=`realpath $MIRROR/odm`
+MY_PRODUCT=`realpath $MIRROR/my_product`
+
 # Restore and reset
 . $MODPATH/uninstall.sh
 rm -rf $amldir $MODPATH/system $MODPATH/errors.txt $MODPATH/system.prop
 [ -f "$moddir/acdb/post-fs-data.sh" ] && mv -f $moddir/acdb/post-fs-data.sh $moddir/acdb/post-fs-data.sh.bak
 mkdir $amldir
 # Don't follow symlinks
-files="$(find $MAGISKTMP/mirror/system_root/system $MAGISKTMP/mirror/system $MAGISKTMP/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" -o -name "*audio_configs*.xml" -o -name "*audio_device*.xml")"
+lists="*audio*effects*.conf -o -name *audio*effects*.xml\
+       -o -name *policy*.conf -o -name *policy*.xml\
+       -o -name *mixer*paths*.xml -o -name *mixer*gains*.xml\
+       -o -name *audio*device*.xml -o -name *sapa*feature*.xml\
+       -o -name *audio*platform*info*.xml -o -name *audio*configs*.xml"
+files="$(find $SYSTEM $VENDOR $ODM $MY_PRODUCT -type f -name $lists)"
 for file in $files; do
   name=$(echo "$file" | sed -e "s|$MAGISKTMP/mirror||" -e "s|/system_root/|/|" -e "s|/system/|/|")
   cp_mv -c $file $MODPATH/system$name
@@ -74,7 +86,7 @@ for mod in $(find $moddir/* -maxdepth 0 -type d ! -name aml); do
   modname="$(basename $mod)"
   [ -f "$mod/disable" ] && continue
   # Move files
-  files="$(find $mod/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" -o -name "*audio_configs*.xml" -o -name "*audio_device*.xml" 2>/dev/null)"
+  files="$(find $mod/system -type f -name $lists 2>/dev/null)"
   [ "$files" ] && echo "$modname" >> $amldir/modlist || continue
   for file in $files; do
     cp_mv -m $file $amldir/$modname/$(echo "$file" | sed "s|$mod/||")
@@ -90,8 +102,10 @@ done
 
 # Set perms and such
 set_perm_recursive $MODPATH/system 0 0 0755 0644
-if [ -d $MODPATH/system/vendor ]; then
-  set_perm_recursive $MODPATH/system/vendor 0 0 0755 0644 u:object_r:vendor_file:s0
-  [ -d $MODPATH/system/vendor/etc ] && set_perm_recursive $MODPATH/system/vendor/etc 0 0 0755 0644 u:object_r:vendor_configs_file:s0
+if [ $API -ge 26 ]; then
+  set_perm_recursive $MODPATH/system/vendor 0 2000 0755 0644 u:object_r:vendor_file:s0
+  set_perm_recursive $MODPATH/system/vendor/etc 0 2000 0755 0644 u:object_r:vendor_configs_file:s0
+  set_perm_recursive $MODPATH/system/vendor/odm/etc 0 2000 0755 0644 u:object_r:vendor_configs_file:s0
+  set_perm_recursive $MODPATH/system/odm/etc 0 0 0755 0644 u:object_r:vendor_configs_file:s0
 fi
 exit 0

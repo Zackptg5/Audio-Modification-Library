@@ -212,8 +212,10 @@ for mod in $(find $moddir/* -maxdepth 0 -type d ! -name aml); do
 done
 
 # Reload patched files - original mounted files are seemingly deleted and replaced by sed
-for i in $(find $MODPATH/system -type f); do
-  j="$(echo $i | sed "s|$MODPATH||")"
+dir=$MODPATH/system
+files=$(find $dir -type f)
+for i in $files; do
+  j="$(echo $i | sed "s|$dir||")"
   umount $j
   mount -o bind $i $j
 done
