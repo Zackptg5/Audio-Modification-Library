@@ -1,10 +1,9 @@
 # Variables
-# magisk --path isn't accessible during till part way through post-fs-data 
-[ -d "/sbin/.magisk" ] && MAGISKTMP="/sbin/.magisk" || MAGISKTMP="$(find /dev -mindepth 2 -maxdepth 2 -type d -name ".magisk")"
-MODPATH=$MAGISKTMP/modules/aml
-API=
-moddir=
+MODPATH="${0%/*}"
 amldir=
+API=
+[ -z $KSU ] && KSU=false
+filenames="-name *audio_effects*.conf -o -name *audio_effects*.xml -o -name *audio_*policy*.conf -o -name *audio_*policy*.xml -o -name *mixer_paths*.xml -o -name *mixer_gains*.xml -o -name *audio_device*.xml -o -name *sapa_feature*.xml -o -name *audio_platform_info*.xml -o -name *audio_configs*.xml -o -name *audio_device*.xml -o -name *stage_policy*.conf"
 
 # Functions
 set_perm() {
@@ -29,7 +28,7 @@ cp_mv() {
 }
 osp_detect() {
   local spaces effects type="$1"
-  local files=$(find $MODPATH/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml")
+  local files=$(find $MODPATH -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml")
   for file in $files; do
     for osp in $type; do
       case $file in
@@ -57,30 +56,49 @@ set -x
 
 # Restore and reset
 . $MODPATH/uninstall.sh
-rm -rf $amldir $MODPATH/system $MODPATH/errors.txt $MODPATH/system.prop
+moddir="$(dirname $MODPATH)" # Changed by uninstall script
+rm -rf $amldir $MODPATH/system $MODPATH/vendor $MODPATH/odm $MODPATH/my_product $MODPATH/errors.txt $MODPATH/system.prop 2>/dev/null
 [ -f "$moddir/acdb/post-fs-data.sh" ] && mv -f $moddir/acdb/post-fs-data.sh $moddir/acdb/post-fs-data.sh.bak
 mkdir $amldir
 # Don't follow symlinks
-files="$(find $MAGISKTMP/mirror/system_root/system $MAGISKTMP/mirror/system $MAGISKTMP/mirror/vendor -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" -o -name "*audio_configs*.xml" -o -name "*audio_device*.xml")"
+if $KSU || [ "$(echo $MAGISK_VER | awk -F- '{ print $NF}')" == "delta" ]; then
+  partitions="/system_root/system /system /vendor /odm /my_product"
+else
+  partitions="/system_root/system /system /vendor"
+fi
+files="$(find $partitions -type f $filenames 2>/dev/null)"
 for file in $files; do
-  name=$(echo "$file" | sed -e "s|$MAGISKTMP/mirror||" -e "s|/system_root/|/|" -e "s|/system/|/|")
-  cp_mv -c $file $MODPATH/system$name
-  modfiles="/system$name $modfiles"
+  $KSU && name=$(echo "$file" | sed "s|/system_root/|/|") || name=$(echo "$file" | sed -e "s|/system_root/|/|" -e "s|/system/|/|" | sed "s|^|/system|")
+  cp_mv -c $file $MODPATH$name
+  modfiles="$name $modfiles"
 done
+if $KSU; then
+  partitions="$(echo $partitions | sed "s|/system_root/system /system ||")"
+  for part in $partitions; do
+    [ -d $MODPATH$part ] && ln -sf $part $MODPATH/system$part
+  done
+fi
 osp_detect "music"
 
 # Detect/move audio mod files
-for mod in $(find $moddir/* -maxdepth 0 -type d ! -name aml); do
+for mod in $(find $moddir/* -maxdepth 0 -type d ! -name aml -a ! -name 'lost+found'); do
   modname="$(basename $mod)"
   [ -f "$mod/disable" ] && continue
+  $KSU && partitions="$mod/system $mod/vendor $mod/odm $mod/my_product" || partitions="$mod/system"
   # Move files
-  files="$(find $mod/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml" -o -name "*audio_*policy*.conf" -o -name "*audio_*policy*.xml" -o -name "*mixer_paths*.xml" -o -name "*mixer_gains*.xml" -o -name "*audio_device*.xml" -o -name "*sapa_feature*.xml" -o -name "*audio_platform_info*.xml" -o -name "*audio_configs*.xml" -o -name "*audio_device*.xml" 2>/dev/null)"
+  files="$(find $partitions -type f $filenames 2>/dev/null)"
   [ "$files" ] && echo "$modname" >> $amldir/modlist || continue
   for file in $files; do
     cp_mv -m $file $amldir/$modname/$(echo "$file" | sed "s|$mod/||")
   done
   # Chcon fix for Android Q+
-  [ $API -ge 29 ] && chcon -R u:object_r:vendor_file:s0 $mod/system/vendor/lib*/soundfx 2>/dev/null
+  if [ $API -ge 29 ]; then
+    if $KSU && [ -d $mod/vendor ] && [ ! -L $mod/vendor ]; then
+      chcon -R u:object_r:vendor_file:s0 $mod/vendor/lib*/soundfx 2>/dev/null
+    else
+      chcon -R u:object_r:vendor_file:s0 $mod/system/vendor/lib*/soundfx 2>/dev/null
+    fi
+  fi
 done
 
 # Remove unneeded files from aml
@@ -90,8 +108,16 @@ done
 
 # Set perms and such
 set_perm_recursive $MODPATH/system 0 0 0755 0644
-if [ -d $MODPATH/system/vendor ]; then
-  set_perm_recursive $MODPATH/system/vendor 0 0 0755 0644 u:object_r:vendor_file:s0
-  [ -d $MODPATH/system/vendor/etc ] && set_perm_recursive $MODPATH/system/vendor/etc 0 0 0755 0644 u:object_r:vendor_configs_file:s0
+if [ $API -ge 26 ]; then
+  set_perm_recursive $MODPATH/system/vendor 0 2000 0755 0644 u:object_r:vendor_file:s0
+  set_perm_recursive $MODPATH/system/vendor/etc 0 2000 0755 0644 u:object_r:vendor_configs_file:s0
+  set_perm_recursive $MODPATH/system/vendor/odm/etc 0 2000 0755 0644 u:object_r:vendor_configs_file:s0
+  set_perm_recursive $MODPATH/system/odm/etc 0 0 0755 0644 u:object_r:vendor_configs_file:s0
+  if $KSU; then
+    set_perm_recursive $MODPATH/vendor 0 2000 0755 0644 u:object_r:vendor_file:s0
+    set_perm_recursive $MODPATH/vendor/etc 0 2000 0755 0644 u:object_r:vendor_configs_file:s0
+    set_perm_recursive $MODPATH/vendor/odm/etc 0 2000 0755 0644 u:object_r:vendor_configs_file:s0
+    set_perm_recursive $MODPATH/odm/etc 0 2000 0755 0644 u:object_r:vendor_configs_file:s0
+  fi
 fi
 exit 0

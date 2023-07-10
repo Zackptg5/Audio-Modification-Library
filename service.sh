@@ -1,9 +1,9 @@
 # Variables
-[ "$(magisk --path 2>/dev/null)" ] && MAGISKTMP="$(magisk --path 2>/dev/null)/.magisk" || MAGISKTMP="/sbin/.magisk"
-MODPATH=$MAGISKTMP/modules/aml
-API=
-moddir=
+MODPATH="${0%/*}"
+moddir="$(dirname $MODPATH)"
 amldir=
+API=
+[ -z $KSU ] && KSU=false
 [ $API -ge 26 ] && libdir="/vendor" || libdir="/system"
 
 # Functions
@@ -14,7 +14,7 @@ cp_mv() {
 }
 osp_detect() {
   local spaces effects type="$1"
-  local files=$(find $MODPATH/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml")
+  local files=$(find $MODPATH -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml")
   for file in $files; do
     for osp in $type; do
       case $file in
@@ -52,7 +52,7 @@ patch_cfgs() {
       *) return 1;;
     esac
   done
-  [ -z "$files" ] && files=$(find $MODPATH/system -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml") || { files="$1"; shift; }
+  [ -z $files ] && files="$(find $MODPATH -type f -name "*audio_effects*.conf" -o -name "*audio_effects*.xml")" || { files="$1"; shift; }
   $first && { lib=true; effect=true; }
   if $proxy; then
     effname=$1; uid=${2:?}; shift 2
@@ -197,7 +197,11 @@ for mod in $(find $moddir/* -maxdepth 0 -type d ! -name aml); do
     fi
   else
     # Favor vendor libs over system ones, no aml builtins are 64bit only - use 32bit lib dir
-    libs="$(find $mod/system/vendor/lib/soundfx $mod/system/lib/soundfx -type f <libs> 2>/dev/null)"
+    if $KSU && [ ! -L $MODPATH/system/vendor ]; then
+      libs="$(find $mod/vendor/lib/soundfx $mod/system/lib/soundfx -type f <libs> 2>/dev/null)"
+    else
+      libs="$(find $mod/system/vendor/lib/soundfx $mod/system/lib/soundfx -type f <libs> 2>/dev/null)"
+    fi
     for lib in $libs; do
       for audmod in $MODPATH/.scripts/$(basename $lib)~*; do
         uuid=$(basename $audmod | sed -r "s/.*~(.*).sh/\1/")
@@ -211,12 +215,18 @@ for mod in $(find $moddir/* -maxdepth 0 -type d ! -name aml); do
   fi
 done
 
-# Reload patched files - original mounted files are seemingly deleted and replaced by sed
-for i in $(find $MODPATH/system -type f); do
-  j="$(echo $i | sed "s|$MODPATH||")"
-  umount $j
-  mount -o bind $i $j
-done
+# Reload patched files
+if $KSU; then # KSU - reload overlay after modifications
+  for i in /system /vendor /odm /my_product; do
+    [ -d $MODPATH$i ] && mount -o remount $i
+  done
+else # Magisk - Original mounted files are seemingly deleted and replaced by sed
+  for i in $(find $MODPATH/system -type f); do
+    j="$(echo $i | sed -e "s|$MODPATH||" -e 's|/system/odm|/odm|' -e 's|/system/my_product|/my_product|')"
+    umount $j
+    mount -o bind $i $j
+  done
+fi
 [ $API -ge 24 ] && killall audioserver 2>/dev/null || killall mediaserver 2>/dev/null
 exit 0
 )&
