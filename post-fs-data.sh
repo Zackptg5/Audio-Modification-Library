@@ -2,7 +2,8 @@
 MODPATH="${0%/*}"
 amldir=
 API=
-[ -z $KSU ] && KSU=false
+KSU=
+MAGISK_VER=
 filenames="-name *audio_effects*.conf -o -name *audio_effects*.xml -o -name *audio_*policy*.conf -o -name *audio_*policy*.xml -o -name *mixer_paths*.xml -o -name *mixer_gains*.xml -o -name *audio_device*.xml -o -name *sapa_feature*.xml -o -name *audio_platform_info*.xml -o -name *audio_configs*.xml -o -name *audio_device*.xml -o -name *stage_policy*.conf"
 
 # Functions
