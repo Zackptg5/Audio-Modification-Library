@@ -27,9 +27,10 @@ libs="$(echo $libs | sed "s/\" /\" -o /g")"
 sed -i -e "s|<libs>|$libs|" $MODPATH/service.sh
 
 # Set vars in script
+[ -z $KSU ] && KSU=false
 [ -z $SERVICED ] && SERVICED=$NVBASE/service.d
 amldir=$NVBASE/aml
-for i in API amldir; do
+for i in API amldir KSU MAGISK_VER; do
   for j in post-fs-data service uninstall; do
     sed -i "s|$i=|$i=$(eval echo \$$i)|" $MODPATH/$j.sh
   done

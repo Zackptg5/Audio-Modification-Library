@@ -3,7 +3,7 @@ MODPATH="${0%/*}"
 moddir="$(dirname $MODPATH)"
 amldir=
 API=
-[ -z $KSU ] && KSU=false
+KSU=
 [ $API -ge 26 ] && libdir="/vendor" || libdir="/system"
 
 # Functions
