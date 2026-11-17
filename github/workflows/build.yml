@@ -1,0 +1,28 @@
+name: Build Magisk Zip
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Update installer and package root
+        run: |
+          curl -fsSL https://githubusercontent.com -o META-INF/com/google/android/update-binary
+          sudo apt-get update && sudo apt-get install -y dos2unix
+          find . -type f \( -name "*.sh" -o -name "*.prop" -o -name "updater-script" \) -exec dos2unix {} +
+          zip -r9 AML-Magisk-Fixed.zip . -x "*.git*" "*.github*" "*.md"
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0-${{ github.run_number }}
+          files: AML-Magisk-Fixed.zip
